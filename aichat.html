@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PocketPal - Money Management Chatbot</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Critical button fix */
+        button, .btn, .send-btn, .question-chip {
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            z-index: 999 !important;
+            position: relative !important;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fb;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            border-radius: 12px;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            display: flex;
+            gap: 30px;
+        }
+
+        .info-panel {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            height: fit-content;
+        }
+
+        .info-panel h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f5ff;
+            display: flex;
+            align-items: center;
+        }
+
+        .info-panel h2 i {
+            margin-right: 10px;
+            color: #2563eb;
+        }
+
+        .info-panel ul {
+            list-style-type: none;
+            margin-left: 10px;
+        }
+
+        .info-panel li {
+            margin-bottom: 15px;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .info-panel li:before {
+            content: "•";
+            color: #2563eb;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+
+        .chatbot-container {
+            flex: 2;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            height: 700px;
+        }
+
+        .chatbot-header {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chatbot-title {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+
+        .chatbot-title i {
+            margin-right: 10px;
+            font-size: 1.8rem;
+        }
+
+        .chatbot-status {
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 12px;
+            border-radius: 20px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background: #00ff00;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .chatbot-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            background: #fafbff;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 18px;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+            position: relative;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .bot-message {
+            align-self: flex-start;
+            background: #f0f5ff;
+            color: #2c3e50;
+            border-bottom-left-radius: 5px;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-top: 5px;
+            text-align: right;
+        }
+
+        .quick-questions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+            padding: 10px 0;
+        }
+
+        .question-chip {
+            background: #e6eeff;
+            color: #2c3e50;
+            padding: 8px 15px;
+            border-radius: 18px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .question-chip:hover {
+            background: #d0deff;
+            transform: translateY(-2px);
+        }
+
+        .chatbot-input {
+            display: flex;
+            padding: 20px;
+            border-top: 1px solid #eee;
+            background: white;
+        }
+
+        .chatbot-input input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 1px solid #ddd;
+            border-radius: 30px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .chatbot-input input:focus {
+            border-color: #2563eb;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-left: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Enhanced Responsive Design */
+        
+        /* Tablet styles */
+        @media (max-width: 1024px) {
+            body {
+                padding: 15px;
+            }
+            
+            .container {
+                gap: 20px;
+            }
+            
+            .chatbot-container {
+                height: 650px;
+            }
+        }
+        
+        /* Mobile landscape */
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .info-panel {
+                order: 2;
+            }
+            
+            .chatbot-container {
+                height: 500px;
+                order: 1;
+            }
+        }
+        
+        /* Mobile portrait */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+                font-size: 14px;
+            }
+            
+            .header {
+                margin-bottom: 20px;
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+                margin-bottom: 8px;
+            }
+            
+            .header p {
+                font-size: 1rem;
+            }
+            
+            .chatbot-container {
+                height: 70vh;
+                min-height: 400px;
+            }
+            
+            .chatbot-header {
+                padding: 15px;
+            }
+            
+            .chatbot-title {
+                font-size: 1.1rem;
+            }
+            
+            .chatbot-title i {
+                font-size: 1.3rem;
+            }
+            
+            .chatbot-messages {
+                padding: 15px;
+            }
+            
+            .message {
+                max-width: 85%;
+                padding: 12px;
+                font-size: 0.95rem;
+            }
+            
+            .question-chip {
+                font-size: 0.85rem;
+                padding: 6px 12px;
+            }
+            
+            .chatbot-input {
+                padding: 15px;
+                gap: 10px;
+            }
+            
+            .chatbot-input input {
+                padding: 12px 16px;
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+            
+            .send-btn {
+                width: 44px;
+                height: 44px;
+                margin-left: 8px;
+            }
+            
+            .info-panel {
+                padding: 20px;
+            }
+            
+            .info-panel h2 {
+                font-size: 1.1rem;
+                margin-bottom: 15px;
+            }
+            
+            .info-panel li {
+                font-size: 0.9rem;
+                margin-bottom: 12px;
+            }
+        }
+        
+        /* Small mobile */
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .header p {
+                font-size: 0.9rem;
+            }
+            
+            .chatbot-container {
+                height: 65vh;
+                min-height: 350px;
+            }
+            
+            .chatbot-header {
+                padding: 12px;
+            }
+            
+            .chatbot-title {
+                font-size: 1rem;
+            }
+            
+            .chatbot-messages {
+                padding: 12px;
+            }
+            
+            .message {
+                max-width: 90%;
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+            
+            .question-chip {
+                font-size: 0.8rem;
+                padding: 5px 10px;
+            }
+            
+            .chatbot-input {
+                padding: 12px;
+            }
+            
+            .chatbot-input input {
+                padding: 10px 14px;
+            }
+            
+            .send-btn {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .info-panel {
+                padding: 15px;
+            }
+            
+            .info-panel h2 {
+                font-size: 1rem;
+            }
+            
+            .info-panel li {
+                font-size: 0.85rem;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+            <div>
+                <h1><i class="fas fa-robot"></i> PocketPal Assistant</h1>
+                <p>Your AI for budgeting, saving, investing and more</p>
+            </div>
+            <div>
+                <a href="index.html" class="btn btn-secondary" style="text-decoration:none; background:#fff; color:#333; padding:10px 14px; border-radius:10px; display:inline-flex; align-items:center; gap:8px;"><i class="fas fa-arrow-left"></i> Dashboard</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="info-panel">
+            <h2><i class="fas fa-lightbulb"></i> Ask me about:</h2>
+            <ul>
+                <li>Budgeting strategies</li>
+                <li>Saving money effectively</li>
+                <li>Investment basics</li>
+                <li>Reducing expenses</li>
+                <li>Debt management</li>
+                <li>Financial planning</li>
+                <li>Understanding expenses</li>
+                <li>Setting financial goals</li>
+                <li>Emergency funds</li>
+                <li>Retirement planning</li>
+            </ul>
+
+            <h2 style="margin-top: 30px;"><i class="fas fa-star"></i> Pro Tips</h2>
+            <ul>
+                <li>Track your expenses daily</li>
+                <li>Review your budget weekly</li>
+                <li>Save at least 20% of your income</li>
+                <li>Limit dining out to save money</li>
+                <li>Use the 50/30/20 budgeting rule</li>
+            </ul>
+        </div>
+
+        <div class="chatbot-container">
+            <div class="chatbot-header">
+                <div class="chatbot-title">
+                    <i class="fas fa-robot"></i>
+                    PocketPal Assistant
+                </div>
+                <div class="chatbot-status">
+                    <div class="status-dot"></div>
+                    <span id="chatStatus">Online</span>
+                </div>
+            </div>
+
+            <div class="chatbot-messages" id="chatMessages">
+                <div class="message bot-message">
+                    Hello! I'm PocketPal, your money management assistant. I can help you with budgeting, saving,
+                    investing, and all things financial! How can I assist you today?
+                    <div class="message-time">Just now</div>
+
+                    <div class="quick-questions">
+                        <div class="question-chip" data-question="How can I create a budget?" onclick="askQuestion('How can I create a budget?')" style="cursor: pointer;">How can I create a budget?</div>
+                        <div class="question-chip" data-question="What's the best way to save money?" onclick="askQuestion('What\'s the best way to save money?')" style="cursor: pointer;">What's the best way to save money?</div>
+                        <div class="question-chip" data-question="How do I reduce my expenses?" onclick="askQuestion('How do I reduce my expenses?')" style="cursor: pointer;">How do I reduce my expenses?</div>
+                        <div class="question-chip" data-question="What are some good investment options?" onclick="askQuestion('What are some good investment options?')" style="cursor: pointer;">What are some good investment options?</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chatbot-input" style="gap:10px; align-items:center;">
+                <input type="text" id="userInput" placeholder="Ask a question about money management...">
+                <button class="send-btn" id="sendMessage" title="Send" onclick="sendUserMessage()" style="cursor: pointer;">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+                <button class="send-btn" id="clearChat" title="Clear chat" onclick="clearChatHistory()" style="width:44px; height:44px; background:#eef1f7; color:#444; cursor: pointer;">
+                    <i class="fas fa-broom"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const chatMessages = document.getElementById('chatMessages');
+            const userInput = document.getElementById('userInput');
+            const sendMessage = document.getElementById('sendMessage');
+            const clearChatBtn = document.getElementById('clearChat');
+            const CHAT_KEY = 'pocketpal_chat_history';
+
+            // Restore chat history
+            try {
+                const saved = JSON.parse(localStorage.getItem(CHAT_KEY) || '[]');
+                saved.forEach(m => addMessage(m.html, m.type, false));
+            } catch {}
+
+            // Function to add message to chat
+            function addMessage(text, type, persist = true) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message');
+                messageElement.classList.add(type === 'bot' ? 'bot-message' : 'user-message');
+
+                // Add message content
+                messageElement.innerHTML = text;
+
+                // Add timestamp
+                const now = new Date();
+                const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                messageElement.innerHTML += `<div class="message-time">${timeString}</div>`;
+
+                chatMessages.appendChild(messageElement);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                if (persist) {
+                    persistHistory();
+                }
+            }
+
+            function persistHistory() {
+                const nodes = chatMessages.querySelectorAll('.message');
+                const items = Array.from(nodes).map(n => ({ html: n.innerHTML.replace(/<div class=\"message-time\">[\s\S]*?<\/div>$/, ''), type: n.classList.contains('bot-message') ? 'bot' : 'user' }));
+                localStorage.setItem(CHAT_KEY, JSON.stringify(items));
+            }
+
+            // Escape user-provided text to prevent HTML injection
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str || '';
+                return div.innerHTML;
+            }
+
+            // Function to generate bot response
+            function generateResponse(input) {
+                input = input.toLowerCase();
+
+                // Budgeting responses
+                if (input.includes('budget') || input.includes('create a budget')) {
+                    return `Creating a budget is the foundation of good money management. Here's how to start:<br><br>
+                    1. <strong>Track your income:</strong> Calculate your total monthly income after taxes.<br>
+                    2. <strong>List your expenses:</strong> Categorize your spending (housing, food, transportation, etc.).<br>
+                    3. <strong>Set spending limits:</strong> Allocate specific amounts to each category.<br>
+                    4. <strong>Use the 50/30/20 rule:</strong> 50% for needs, 30% for wants, 20% for savings/debt.<br>
+                    5. <strong>Review regularly:</strong> Adjust your budget as needed each month.<br><br>
+                    Would you like me to help you set up a personalized budget?`;
+                }
+                // Saving money responses
+                else if (input.includes('save') || input.includes('saving money')) {
+                    return `Saving money effectively requires strategy and discipline. Here are some proven methods:<br><br>
+                    <strong>Automate your savings:</strong> Set up automatic transfers to your savings account on payday.<br>
+                    <strong>Follow the 24-hour rule:</strong> Wait a day before making non-essential purchases to avoid impulse buying.<br>
+                    <strong>Use cashback apps:</strong> Get money back on purchases you already make.<br>
+                    <strong>Meal planning:</strong> Preparing meals at home can save significant money compared to eating out.<br>
+                    <strong>Review subscriptions:</strong> Cancel unused subscriptions that drain your funds monthly.<br><br>
+                    What specific area of saving would you like to focus on?`;
+                }
+                // Investment responses
+                else if (input.includes('invest') || input.includes('investment')) {
+                    return `Investing is crucial for building wealth over time. Here are some beginner-friendly options:<br><br>
+                    <strong>1. Retirement accounts (401k, IRA):</strong> Tax-advantaged accounts for long-term savings.<br>
+                    <strong>2. Index funds:</strong> Low-cost funds that track market indexes.<br>
+                    <strong>3. Robo-advisors:</strong> Automated investing platforms that create portfolios based on your goals.<br>
+                    <strong>4. High-yield savings accounts:</strong> Better interest rates than traditional savings accounts.<br>
+                    <strong>5. Education:</strong> Before investing, learn about different asset types and risk levels.<br><br>
+                    Remember: The best investment strategy depends on your goals, timeline, and risk tolerance.`;
+                }
+                // Expense reduction responses
+                else if (input.includes('reduce') || input.includes('cut') || input.includes('expense')) {
+                    return `Reducing expenses is often easier than increasing income. Here are practical ways to cut costs:<br><br>
+                    <strong>1. Negotiate bills:</strong> Call service providers to negotiate better rates on internet, phone, and insurance.<br>
+                    <strong>2. Energy efficiency:</strong> Lower utility bills by using energy-efficient appliances and practices.<br>
+                    <strong>3. Generic brands:</strong> Often same quality as name brands but significantly cheaper.<br>
+                    <strong>4. Public transportation:</strong> Can be much cheaper than maintaining a car in urban areas.<br>
+                    <strong>5. Library resources:</strong> Free access to books, movies, and sometimes even tools instead of buying.<br><br>
+                    Which expenses are you specifically looking to reduce?`;
+                }
+                // Debt management responses
+                else if (input.includes('debt') || input.includes('loan') || input.includes('credit card')) {
+                    return `Managing debt effectively is crucial for financial health. Here are strategies to consider:<br><br>
+                    <strong>Snowball method:</strong> Pay off smallest debts first for psychological wins.<br>
+                    <strong>Avalanche method:</strong> Pay off highest-interest debts first to save money.<br>
+                    <strong>Debt consolidation:</strong> Combine multiple debts into one with a lower interest rate.<br>
+                    <strong>Balance transfer:</strong> Move high-interest credit card debt to a card with 0% introductory APR.<br>
+                    <strong>Budget adjustment:</strong> Temporarily reduce discretionary spending to allocate more to debt.<br><br>
+                    The best approach depends on your personality and the specifics of your debt.`;
+                }
+                // Emergency fund responses
+                else if (input.includes('emergency') || input.includes('rainy day')) {
+                    return `An emergency fund is your financial safety net. Here's what you need to know:<br><br>
+                    <strong>How much:</strong> 3-6 months of living expenses is standard recommendation.<br>
+                    <strong>Where to keep it:</strong> In a separate savings account that's easily accessible but not too easy to dip into for non-emergencies.<br>
+                    <strong>What counts as emergency:</strong> Job loss, medical emergencies, urgent car or home repairs.<br>
+                    <strong>Building it:</strong> Start small with $500-1000, then gradually build to your target.<br>
+                    <strong>Replenish:</strong> If you use it, make replenishing it a priority.<br><br>
+                    Do you currently have an emergency fund established?`;
+                }
+                // General greeting responses
+                else if (input.includes('hello') || input.includes('hi') || input.includes('hey')) {
+                    return `Hello! I'm PocketPal, your money management assistant. How can I help you with your financial questions today?<br><br>
+                    You can ask me about budgeting, saving, investing, reducing expenses, debt management, or any other money-related topics!`;
+                }
+                // Thank you responses
+                else if (input.includes('thank') || input.includes('thanks') || input.includes('thank you')) {
+                    return `You're welcome! I'm here to help you achieve your financial goals. Is there anything else you'd like to know about money management?`;
+                }
+                // Default response
+                else {
+                    return `I specialize in money management topics like budgeting, saving, investing, and debt reduction. Could you please ask your question in a different way or try one of these common topics?<br><br>
+                    <div class="quick-questions">
+                        <div class="question-chip" data-question="How can I create a budget?">How can I create a budget?</div>
+                        <div class="question-chip" data-question="What's the best way to save money?">What's the best way to save money?</div>
+                        <div class="question-chip" data-question="How do I reduce my expenses?">How do I reduce my expenses?</div>
+                    </div>`;
+                }
+            }
+
+            // Function to handle sending a message
+            function handleSendMessage() {
+                const message = userInput.value.trim();
+                if (message === '') return;
+
+                addMessage(escapeHTML(message), 'user');
+                userInput.value = '';
+
+                // Typing indicator
+                const typing = document.createElement('div');
+                typing.className = 'message bot-message';
+                typing.innerHTML = `<span><i class="fas fa-ellipsis-h"></i> typing...</span>`;
+                chatMessages.appendChild(typing);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                setTimeout(() => {
+                    typing.remove();
+                    const botResponse = generateResponse(message);
+                    addMessage(botResponse, 'bot');
+
+                    if (message.toLowerCase().includes('thank') === false) {
+                        const quickQuestions = document.createElement('div');
+                        quickQuestions.className = 'quick-questions';
+                        quickQuestions.innerHTML = `
+                            <div class="question-chip" data-question="How can I create a budget?">How can I create a budget?</div>
+                            <div class="question-chip" data-question="What's the best way to save money?">What's the best way to save money?</div>
+                            <div class="question-chip" data-question="How do I reduce my expenses?">How do I reduce my expenses?</div>
+                        `;
+                        document.querySelector('.message.bot-message:last-child').appendChild(quickQuestions);
+
+                        document.querySelectorAll('.question-chip').forEach(chip => {
+                            chip.addEventListener('click', function () {
+                                userInput.value = this.getAttribute('data-question');
+                                handleSendMessage();
+                            });
+                        });
+                    }
+                }, 700);
+            }
+
+            // Event listener for send button
+            sendMessage.addEventListener('click', handleSendMessage);
+
+            // Clear chat
+            clearChatBtn.addEventListener('click', () => {
+                if (!confirm('Clear chat history?')) return;
+                chatMessages.innerHTML = '';
+                localStorage.removeItem(CHAT_KEY);
+                // Seed a greeting again
+                addMessage(`Hello! I'm PocketPal, your money management assistant. I can help you with budgeting, saving, investing, and all things financial! How can I assist you today?`, 'bot');
+            });
+
+            // Event listener for Enter key
+            userInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    handleSendMessage();
+                }
+            });
+
+            // Event listeners for quick question chips
+            document.querySelectorAll('.question-chip').forEach(chip => {
+                chip.addEventListener('click', function () {
+                    userInput.value = this.getAttribute('data-question');
+                    handleSendMessage();
+                });
+            });
+            
+            // Make quick question chips work with onclick
+            document.querySelectorAll('.question-chip').forEach(chip => {
+                chip.onclick = function() {
+                    userInput.value = this.getAttribute('data-question');
+                    handleSendMessage();
+                };
+            });
+        });
+        
+        // Direct button handlers
+        function sendUserMessage() {
+            const userInput = document.getElementById('userInput');
+            const inputValue = userInput.value.trim();
+            if (inputValue) {
+                handleSendMessage();
+            }
+        }
+        
+        function clearChatHistory() {
+            if (confirm('Clear chat history?')) {
+                const chatMessages = document.getElementById('chatMessages');
+                const CHAT_KEY = 'pocketpal_chat_history';
+                chatMessages.innerHTML = '';
+                localStorage.removeItem(CHAT_KEY);
+                // Add initial greeting
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message bot-message';
+                messageElement.innerHTML = `
+                    Hello! I'm PocketPal, your money management assistant. I can help you with budgeting, saving, investing, and all things financial! How can I assist you today?
+                    <div class="message-time">Just now</div>
+                    <div class="quick-questions">
+                        <div class="question-chip" data-question="How can I create a budget?" onclick="askQuestion('How can I create a budget?')">How can I create a budget?</div>
+                        <div class="question-chip" data-question="What's the best way to save money?" onclick="askQuestion('What\'s the best way to save money?')">What's the best way to save money?</div>
+                        <div class="question-chip" data-question="How do I reduce my expenses?" onclick="askQuestion('How do I reduce my expenses?')">How do I reduce my expenses?</div>
+                        <div class="question-chip" data-question="What are some good investment options?" onclick="askQuestion('What are some good investment options?')">What are some good investment options?</div>
+                    </div>
+                `;
+                chatMessages.appendChild(messageElement);
+            }
+        }
+        
+        function askQuestion(question) {
+            document.getElementById('userInput').value = question;
+            sendUserMessage();
+        }
+    </script>
+</body>
+
+</html>

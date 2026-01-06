@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction History - PocketPal</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles/style.css">
+    <link rel="stylesheet" href="styles/history.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Critical button fix */
+        button, .btn {
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            z-index: 999 !important;
+            position: relative !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-wallet"></i>
+                <h1>PocketPal</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html"><i class="fas fa-home"></i> Dashboard</a></li>
+                    <li><a href="history.html" class="active"><i class="fas fa-history"></i> History</a></li>
+                    <li><a href="spending.html"><i class="fas fa-chart-line"></i> Spending</a></li>
+                    <li><a href="split.html"><i class="fas fa-users"></i> Split</a></li>
+                </ul>
+            </nav>
+            <div class="user-controls">
+                <div class="notification-bell" id="notificationBell">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-count" id="notificationCounter">0</span>
+                </div>
+                <div class="user-profile" id="userProfile">
+                    <span><i class="fas fa-user-circle"></i> Guest</span>
+                </div>
+                <button class="btn btn-primary" id="loginBtn"><i class="fas fa-sign-in-alt"></i> Login</button>
+                <button class="btn btn-secondary" id="logoutBtn" style="display: none;"><i
+                        class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </header>
+
+        <main>
+            <h2 class="page-title">Transaction History</h2>
+
+            <div class="history-controls">
+                <div class="filter-card">
+                    <h3><i class="fas fa-filter"></i> Filters</h3>
+                    <div class="filter-group">
+                        <label for="dateFilter">Date Range:</label>
+                        <div class="date-range">
+                            <input type="date" id="startDate">
+                            <span>to</span>
+                            <input type="date" id="endDate">
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label for="categoryFilter">Category:</label>
+                        <select id="categoryFilter">
+                            <option value="all">All Categories</option>
+                            <option value="food">Food & Dining</option>
+                            <option value="travel">Travel & Transport</option>
+                            <option value="entertainment">Entertainment</option>
+                            <option value="study">Study Materials</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="typeFilter">Type:</label>
+                        <select id="typeFilter">
+                            <option value="all">All Transactions</option>
+                            <option value="expense">Expenses Only</option>
+                            <option value="income">Income Only</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" id="applyFilters" onclick="applyHistoryFilters()" style="cursor: pointer;">Apply Filters</button>
+                    <button class="btn btn-secondary" id="resetFilters" onclick="resetHistoryFilters()" style="cursor: pointer;">Reset</button>
+                </div>
+
+                <div class="summary-card">
+                    <h3><i class="fas fa-chart-pie"></i> Summary</h3>
+                    <div class="summary-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Total Transactions</span>
+                            <span class="stat-value" id="totalTransactions">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Total Expenses</span>
+                            <span class="stat-value negative" id="totalExpenses">₹0.00</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Total Income</span>
+                            <span class="stat-value positive" id="totalIncome">₹0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="history-table-container">
+                <table class="history-table" id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Transactions will be loaded here -->
+                        <tr class="loading-row">
+                            <td colspan="5">
+                                <i class="fas fa-spinner fa-spin"></i> Loading transactions...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="pagination-controls">
+                    <button class="btn btn-secondary" id="prevPage" onclick="previousPage()" style="cursor: pointer;">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    <span id="pageInfo">Page 1 of 1</span>
+                    <button class="btn btn-secondary" id="nextPage" onclick="nextPage()" style="cursor: pointer;">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>PocketPal - Smart Virtual Wallet for Students</p>
+            <p>&copy; 2025 PocketPal Inc. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="scripts/dataManager.js"></script>
+    <script src="scripts/script.js"></script>
+    <script src="scripts/history.js"></script>
+    
+    <!-- Direct Button Handlers for History -->
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        
+        function applyHistoryFilters() {
+            console.log('Applying history filters');
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const category = document.getElementById('categoryFilter').value;
+            const type = document.getElementById('typeFilter').value;
+            
+            // Simple demo implementation
+            const tbody = document.querySelector('#historyTable tbody');
+            tbody.innerHTML = `
+                <tr>
+                    <td>2025-09-12 14:30</td>
+                    <td>Coffee at Starbucks</td>
+                    <td><span class="category-tag food">Food & Dining</span></td>
+                    <td class="amount negative">-₹250.00</td>
+                    <td><span class="type-badge expense">Expense</span></td>
+                </tr>
+                <tr>
+                    <td>2025-09-12 10:15</td>
+                    <td>Bus fare to college</td>
+                    <td><span class="category-tag travel">Travel</span></td>
+                    <td class="amount negative">-₹45.00</td>
+                    <td><span class="type-badge expense">Expense</span></td>
+                </tr>
+                <tr>
+                    <td>2025-09-11 16:00</td>
+                    <td>Added money to wallet</td>
+                    <td><span class="category-tag other">Other</span></td>
+                    <td class="amount positive">+₹2000.00</td>
+                    <td><span class="type-badge income">Income</span></td>
+                </tr>
+            `;
+            
+            // Update summary
+            document.getElementById('totalTransactions').textContent = '3';
+            document.getElementById('totalExpenses').textContent = '₹295.00';
+            document.getElementById('totalIncome').textContent = '₹2000.00';
+        }
+        
+        function resetHistoryFilters() {
+            console.log('Resetting history filters');
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('categoryFilter').value = 'all';
+            document.getElementById('typeFilter').value = 'all';
+            
+            // Reset table
+            const tbody = document.querySelector('#historyTable tbody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #666; padding: 2rem;">
+                        <i class="fas fa-search"></i> No transactions found. Add some expenses to see them here!
+                    </td>
+                </tr>
+            `;
+            
+            // Reset summary
+            document.getElementById('totalTransactions').textContent = '0';
+            document.getElementById('totalExpenses').textContent = '₹0.00';
+            document.getElementById('totalIncome').textContent = '₹0.00';
+        }
+        
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                updatePageInfo();
+                console.log('Previous page: ' + currentPage);
+            }
+        }
+        
+        function nextPage() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                updatePageInfo();
+                console.log('Next page: ' + currentPage);
+            }
+        }
+        
+        function updatePageInfo() {
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+            document.getElementById('prevPage').disabled = currentPage <= 1;
+            document.getElementById('nextPage').disabled = currentPage >= totalPages;
+        }
+        
+        // Load default data
+        resetHistoryFilters();
+        
+        console.log('History navigation loaded');
+    </script>
+</body>
+
+</html>

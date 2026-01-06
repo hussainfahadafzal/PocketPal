@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PocketPal - Smart Student Wallet</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Critical button fix */
+        button, .btn {
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            z-index: 999 !important;
+            position: relative !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header with Navigation -->
+        <header>
+            <div class="logo">
+                <i class="fas fa-wallet"></i>
+                <h1>PocketPal</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html"><i class="fas fa-home"></i> Dashboard</a></li>
+                    <li><a href="history.html"><i class="fas fa-history"></i> History</a></li>
+                    <li><a href="spending.html"><i class="fas fa-chart-line"></i> Spending</a></li>
+                    <li><a href="split.html"><i class="fas fa-users"></i> Split</a></li>
+                </ul>
+
+            </nav>
+            <div class="chatbot-container">
+                <a href="aichat.html" class="chatbot-btn" id="chatbotToggle">
+                    <i class="fas fa-robot"></i>
+                </a>
+            </div>
+            <div class="user-controls" id="userControls">
+                <!-- User controls will be populated by JavaScript -->
+            </div>
+        </header>
+
+        <!-- Notification Panel -->
+        <div class="notification-panel" id="notificationPanel">
+            <div class="notification-header">
+                <h3>Notifications</h3>
+                <button class="btn btn-secondary" id="closeNotifications">Close</button>
+            </div>
+            <ul class="notification-list" id="notificationList">
+                <!-- Notifications will be added dynamically -->
+                <li class="notification-item">
+                    <p>Welcome to PocketPal! Start by adding money to your wallet.</p>
+                    <small>Just now</small>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <main>
+            <h2 class="page-title">Dashboard</h2>
+            
+            <!-- Welcome Banner -->
+            <div class="welcome-banner" id="welcomeBanner" style="margin-bottom: 1.5rem;">
+                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                    <div class="card-body" style="padding: 1.5rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <h3 style="margin: 0 0 0.5rem 0; color: white;"><i class="fas fa-sparkles"></i> Welcome to PocketPal!</h3>
+                                <p style="margin: 0; opacity: 0.9; font-size: 1rem;">Your smart student wallet is ready to help you manage expenses and budgets.</p>
+                            </div>
+                            <div style="text-align: center;">
+                                <button class="btn" onclick="this.closest('.welcome-banner').style.display='none'" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem; border-radius: 50%; width: 40px; height: 40px; cursor: pointer;"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.2);">
+                            <div style="display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.9rem;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-plus-circle"></i> Add money to start tracking</div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-chart-pie"></i> Set budgets for categories</div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-receipt"></i> Record your expenses</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <!-- Wallet Balance Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Wallet Balance</h3>
+                        <div class="card-icon">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                    </div>
+                    <div class="balance-display positive" id="walletBalance">₹0.00</div>
+                    <button class="btn btn-primary btn-block" id="addMoneyBtn"><i class="fas fa-plus-circle"></i> Add
+                        Money</button>
+                </div>
+
+                <!-- Add Expense Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Add Expense</h3>
+                        <div class="card-icon">
+                            <i class="fas fa-minus-circle"></i>
+                        </div>
+                    </div>
+                    <form id="expenseForm">
+                        <div class="form-group">
+                            <label for="expenseAmount">Amount (₹)</label>
+                            <input type="number" id="expenseAmount" placeholder="e.g., 150" min="1" step="0.01" required>
+                            <small style="color: var(--gray-color); font-size: 0.8rem;">Enter the amount you spent</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="expenseCategory">Category</label>
+                            <select id="expenseCategory" required>
+                                <option value="">Choose a category</option>
+                                <option value="food">🍽️ Food & Dining</option>
+                                <option value="travel">🚌 Travel & Transport</option>
+                                <option value="entertainment">🎬 Entertainment</option>
+                                <option value="study">📚 Study Materials</option>
+                                <option value="other">📦 Other</option>
+                            </select>
+                            <small style="color: var(--gray-color); font-size: 0.8rem;">This helps track your spending patterns</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="expenseDescription">Description</label>
+                            <input type="text" id="expenseDescription" placeholder="e.g., Lunch at college cafeteria">
+                            <small style="color: var(--gray-color); font-size: 0.8rem;">Optional: Add details about this expense</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="expenseDate">Date</label>
+                            <input type="date" id="expenseDate" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block"><i class="fas fa-save"></i> Add
+                            Expense</button>
+                    </form>
+                </div>
+
+                <!-- Budget Overview Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Budget Overview</h3>
+                        <div class="card-icon">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                    </div>
+                    <div class="budget-categories" id="budgetCategories">
+                        <!-- Budget categories will be added dynamically -->
+                        <div class="category-card">
+                            <div class="category-header">
+                                <span class="category-name">Set your budgets</span>
+                            </div>
+                            <p style="text-align: center; color: var(--gray-color);">No budgets set yet</p>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary btn-block" id="setBudgetBtn" style="margin-top: 1rem;"><i
+                            class="fas fa-edit"></i> Set Budgets</button>
+                </div>
+
+                <!-- Recent Expenses Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Recent Expenses</h3>
+                        <div class="card-icon">
+                            <i class="fas fa-receipt"></i>
+                        </div>
+                    </div>
+                    <ul class="expense-list" id="expenseList">
+                        <!-- Expenses will be added dynamically -->
+                        <li style="text-align: center; color: var(--gray-color); padding: 1rem;">No expenses yet</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- AI Insights Section -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-lightbulb"></i> PocketPal Insights</h3>
+                </div>
+                <div class="insights-container" id="insightsContainer">
+                    <!-- Insights will be added dynamically -->
+                    <div class="insight-card">
+                        <h4><i class="fas fa-lightbulb"></i> How to get started</h4>
+                        <p>1. <strong>Add money</strong> to your wallet using the button above</p>
+                        <p>2. <strong>Set budgets</strong> for different categories to track spending</p>
+                        <p>3. <strong>Record expenses</strong> to see where your money goes</p>
+                        <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--gray-color);">PocketPal will then provide personalized insights to help you save money! 💰</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <p>PocketPal - Smart Virtual Wallet for Students</p>
+            <p>&copy; 2025 PocketPal Inc. All rights reserved.</p>
+            <div class="social-icons">
+                <i class="fab fa-facebook"></i>
+                <i class="fab fa-twitter"></i>
+                <i class="fab fa-instagram"></i>
+                <i class="fab fa-linkedin"></i>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Budget Modal -->
+    <div class="modal" id="budgetModal">
+        <div class="modal-content">
+            <h3><i class="fas fa-chart-pie"></i> Set Monthly Budgets</h3>
+            <p style="margin-bottom: 1.5rem; color: var(--gray-color); font-size: 0.9rem;">Set how much you plan to spend in each category this month. You'll get alerts when you're close to your limits.</p>
+            <form id="budgetForm">
+                <div class="form-group">
+                    <label for="foodBudget">🍽️ Food & Dining (₹)</label>
+                    <input type="number" id="foodBudget" placeholder="e.g., 3000" min="0" step="1">
+                    <small style="color: var(--gray-color); font-size: 0.8rem;">Meals, snacks, and beverages</small>
+                </div>
+                <div class="form-group">
+                    <label for="travelBudget">🚌 Travel & Transport (₹)</label>
+                    <input type="number" id="travelBudget" placeholder="e.g., 1500" min="0" step="1">
+                    <small style="color: var(--gray-color); font-size: 0.8rem;">Bus, metro, auto, taxi fares</small>
+                </div>
+                <div class="form-group">
+                    <label for="entertainmentBudget">🎬 Entertainment (₹)</label>
+                    <input type="number" id="entertainmentBudget" placeholder="e.g., 1000" min="0" step="1">
+                    <small style="color: var(--gray-color); font-size: 0.8rem;">Movies, games, outings with friends</small>
+                </div>
+                <div class="form-group">
+                    <label for="studyBudget">📚 Study Materials (₹)</label>
+                    <input type="number" id="studyBudget" placeholder="e.g., 2000" min="0" step="1">
+                    <small style="color: var(--gray-color); font-size: 0.8rem;">Books, stationery, online courses</small>
+                </div>
+                <div class="form-group">
+                    <label for="otherBudget">📦 Other (₹)</label>
+                    <input type="number" id="otherBudget" placeholder="e.g., 800" min="0" step="1">
+                    <small style="color: var(--gray-color); font-size: 0.8rem;">Miscellaneous expenses</small>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelBudgetBtn" onclick="document.getElementById('budgetModal').style.display='none'" style="cursor: pointer;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="cursor: pointer;">Save Budgets</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Money Modal -->
+    <div class="modal" id="addMoneyModal">
+        <div class="modal-content">
+            <h3><i class="fas fa-wallet"></i> Add Money to Wallet</h3>
+            <p style="margin-bottom: 1.5rem; color: var(--gray-color); font-size: 0.9rem;">Add money from your savings, allowance, or part-time job to your digital wallet.</p>
+            <form id="addMoneyForm">
+                <div class="form-group">
+                    <label for="addAmount">Amount (₹)</label>
+                    <input type="number" id="addAmount" placeholder="e.g., 1000" min="1" step="1" required>
+                    <small style="color: var(--gray-color); font-size: 0.8rem;">Enter the amount you want to add</small>
+                    <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-outline" onclick="document.getElementById('addAmount').value='500'" style="font-size: 0.8rem; padding: 0.25rem 0.5rem; cursor: pointer;">₹500</button>
+                        <button type="button" class="btn btn-outline" onclick="document.getElementById('addAmount').value='1000'" style="font-size: 0.8rem; padding: 0.25rem 0.5rem; cursor: pointer;">₹1000</button>
+                        <button type="button" class="btn btn-outline" onclick="document.getElementById('addAmount').value='2000'" style="font-size: 0.8rem; padding: 0.25rem 0.5rem; cursor: pointer;">₹2000</button>
+                        <button type="button" class="btn btn-outline" onclick="document.getElementById('addAmount').value='5000'" style="font-size: 0.8rem; padding: 0.25rem 0.5rem; cursor: pointer;">₹5000</button>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelAddMoneyBtn" onclick="document.getElementById('addMoneyModal').style.display='none'" style="cursor: pointer;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="cursor: pointer;">Add Money</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Login/Register modals removed for demo mode -->
+
+    <!-- Profile Modal -->
+    <div class="modal" id="profileModal">
+        <div class="modal-content">
+            <div class="logo">
+                <i class="fas fa-user-cog"></i>
+                <h1>Profile</h1>
+            </div>
+            <form id="profileForm">
+                <div class="form-group" style="display:flex; align-items:center; gap:12px;">
+                    <img id="profilePreview" alt="Preview" style="width:56px; height:56px; border-radius:50%; object-fit:cover; background:#f0f0f0;">
+                    <div>
+                        <label for="profilePictureFile">Profile Picture</label>
+                        <input type="file" id="profilePictureFile" accept="image/*">
+                        <div>
+                            <button type="button" class="btn btn-outline" id="removeProfilePic" style="margin-top:6px;">Remove picture</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="profileUsername">Username</label>
+                    <input type="text" id="profileUsername" placeholder="Update username">
+                </div>
+                <div class="form-group">
+                    <label for="profileEmail">Email</label>
+                    <input type="email" id="profileEmail" placeholder="Update email">
+                </div>
+                <div class="form-group">
+                    <label for="profilePassword">New Password</label>
+                    <input type="password" id="profilePassword" placeholder="Leave blank to keep same">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelProfileBtn" onclick="document.getElementById('profileModal').style.display='none'" style="cursor: pointer;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="cursor: pointer;">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="scripts/dataManager.js"></script>
+    <script src="scripts/script.js"></script>
+</body>
+
+</html>

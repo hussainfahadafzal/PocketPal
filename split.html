@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Split Expenses - PocketPal</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles/style.css">
+    <link rel="stylesheet" href="styles/split.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Critical button fix */
+        button, .btn {
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            z-index: 999 !important;
+            position: relative !important;
+        }
+        
+        /* Modern Split Calculator Styles */
+        .quick-btn {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            padding: 1rem 0.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+            line-height: 1.3;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #333;
+        }
+        
+        .quick-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .people-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 2rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .people-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+        }
+        
+        .people-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .action-btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.3) !important;
+        }
+        
+        .person-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            animation: popIn 0.3s ease;
+        }
+        
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            80% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .split-history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border: 1px solid #e6e8ee;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            background: white;
+            transition: all 0.3s ease;
+        }
+        
+        .split-history-item:hover {
+            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+        
+        /* Tab Switching Styles */
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .tab-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .tab-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2) !important;
+            color: white !important;
+        }
+        
+        .tab-btn:not(.active) {
+            background: #f8f9fa !important;
+            color: #666 !important;
+        }
+        
+        /* Enhanced Quick Buttons */
+        .quick-btn {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            padding: 1rem 0.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+            line-height: 1.3;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #333;
+        }
+        
+        .quick-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        /* Category Buttons */
+        .category-btn {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #333;
+        }
+        
+        .category-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        
+        .category-btn.active {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border-color: #28a745;
+        }
+        
+        /* Member Tags */
+        .member-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            background: #667eea;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .member-tag.removable {
+            cursor: pointer;
+        }
+        
+        .member-tag.removable:hover {
+            background: #dc3545;
+            transform: scale(1.05);
+        }
+        
+        .remove-member {
+            background: rgba(255,255,255,0.3);
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            cursor: pointer;
+            color: white;
+        }
+        
+        /* Enhanced Responsive Design */
+        
+        /* Base responsive container */
+        .tabs-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        /* Tablet styles */
+        @media (max-width: 1024px) {
+            .tabs-container {
+                max-width: 100%;
+                padding: 0 1rem;
+            }
+            
+            .quick-btn, .category-btn {
+                font-size: 0.85rem;
+                padding: 0.75rem 0.5rem;
+            }
+            
+            .card {
+                margin: 1rem 0;
+            }
+        }
+        
+        /* Mobile styles */
+        @media (max-width: 768px) {
+            .tabs-container {
+                padding: 0 0.5rem;
+            }
+            
+            .tab-nav {
+                flex-direction: row;
+                gap: 0.25rem;
+            }
+            
+            .tab-btn {
+                padding: 0.75rem 1rem !important;
+                font-size: 1rem !important;
+            }
+            
+            .quick-btn, .category-btn {
+                font-size: 0.75rem;
+                padding: 0.5rem 0.25rem;
+                min-height: 60px;
+            }
+            
+            .people-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 1.2rem;
+            }
+            
+            #quickPeople {
+                font-size: 1.5rem !important;
+                width: 60px;
+            }
+            
+            #perPersonAmount {
+                font-size: 2rem !important;
+            }
+            
+            .card {
+                margin: 0.5rem 0;
+                border-radius: 8px;
+            }
+            
+            .card-header {
+                padding: 1rem;
+            }
+            
+            .card-content {
+                padding: 1rem;
+            }
+            
+            /* Form elements responsive */
+            input[type="text"], input[type="number"], select {
+                font-size: 16px !important; /* Prevents zoom on iOS */
+            }
+            
+            .member-tag {
+                font-size: 0.8rem;
+                padding: 0.4rem 0.8rem;
+            }
+            
+            /* Grid responsive */
+            .quick-btn, .category-btn {
+                min-width: 80px;
+            }
+        }
+        
+        /* Small mobile styles */
+        @media (max-width: 480px) {
+            .tab-btn {
+                padding: 0.6rem 0.8rem !important;
+                font-size: 0.9rem !important;
+            }
+            
+            .quick-btn, .category-btn {
+                font-size: 0.7rem;
+                padding: 0.4rem 0.2rem;
+                min-height: 50px;
+                min-width: 70px;
+            }
+            
+            .people-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+            
+            #quickPeople {
+                font-size: 1.2rem !important;
+                width: 50px;
+            }
+            
+            #perPersonAmount {
+                font-size: 1.5rem !important;
+            }
+            
+            .card-content {
+                padding: 0.75rem;
+            }
+            
+            .member-tag {
+                font-size: 0.75rem;
+                padding: 0.3rem 0.6rem;
+            }
+            
+            /* Button responsive */
+            .btn {
+                padding: 0.6rem 1rem;
+                font-size: 0.9rem;
+            }
+            
+            .btn-sm {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-wallet"></i>
+                <h1>PocketPal</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html"><i class="fas fa-home"></i> Dashboard</a></li>
+                    <li><a href="history.html"><i class="fas fa-history"></i> History</a></li>
+                    <li><a href="spending.html"><i class="fas fa-chart-line"></i> Spending</a></li>
+                    <li><a href="split.html" class="active"><i class="fas fa-users"></i> Split</a></li>
+                </ul>
+            </nav>
+            <div class="user-controls">
+                <a href="notifications.html" class="notification-bell" id="notificationBell">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-count" id="notificationCounter">0</span>
+                </a>
+                <div class="user-profile" id="userProfile">
+                    <span><i class="fas fa-user-circle"></i> Guest</span>
+                </div>
+                <button class="btn btn-primary" id="loginBtn"><i class="fas fa-sign-in-alt"></i> Login</button>
+                <button class="btn btn-secondary" id="logoutBtn" style="display: none;"><i
+                        class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </header>
+
+        <main>
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <h2 class="page-title" style="margin-bottom: 0.5rem;">💸 Split Bills Easy</h2>
+                <p style="color: #666; font-size: 1.1rem;">Calculate and share expenses with friends instantly</p>
+            </div>
+
+            <!-- Split Tabs Interface -->
+            <div class="tabs-container">
+                <!-- Tab Navigation -->
+                <div class="tab-nav" style="display: flex; gap: 0; margin-bottom: 2rem; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <button class="tab-btn active" data-tab="quick-split" onclick="switchSplitTab('quick-split')" 
+                            style="flex: 1; padding: 1rem 2rem; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; cursor: pointer; font-size: 1.1rem; font-weight: 600; transition: all 0.3s ease;">
+                        <i class="fas fa-calculator"></i> Quick Split
+                    </button>
+                    <button class="tab-btn" data-tab="group-split" onclick="switchSplitTab('group-split')" 
+                            style="flex: 1; padding: 1rem 2rem; background: #f8f9fa; color: #666; border: none; cursor: pointer; font-size: 1.1rem; font-weight: 600; transition: all 0.3s ease;">
+                        <i class="fas fa-users"></i> Group Split
+                    </button>
+                </div>
+
+                <!-- Quick Split Tab -->
+                <div id="quick-split" class="tab-content active">
+                    <div class="card" style="box-shadow: 0 8px 24px rgba(0,0,0,0.1);">
+                        <div class="card-header" style="text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                            <h3 style="margin: 0; font-size: 1.5rem;">💸 Quick Bill Split</h3>
+                            <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">Split bills instantly with friends</p>
+                        </div>
+                        
+                        <div class="card-content">
+                            <!-- Amount Input -->
+                            <div style="margin-bottom: 1.5rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">Bill Amount</label>
+                                <div style="position: relative;">
+                                    <span style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); font-size: 1.2rem; color: #28a745; font-weight: bold;">₹</span>
+                                    <input type="number" id="quickAmount" placeholder="Enter amount" 
+                                           style="font-size: 1.5rem; padding: 0.75rem 1rem 0.75rem 2.5rem; border: 2px solid #e6e8ee; border-radius: 8px; width: 100%; transition: border-color 0.3s ease;">
+                                </div>
+                            </div>
+
+                            <!-- Description/Category Input -->
+                            <div style="margin-bottom: 1.5rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">Description</label>
+                                <input type="text" id="quickDescription" placeholder="e.g., Dinner at Pizza Hut" 
+                                       style="font-size: 1rem; padding: 0.75rem 1rem; border: 2px solid #e6e8ee; border-radius: 8px; width: 100%; transition: border-color 0.3s ease;">
+                            </div>
+
+                            <!-- Category Selection -->
+                            <div style="margin-bottom: 2rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">Category</label>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.5rem;">
+                                    <button class="category-btn" data-category="food" onclick="selectCategory('food', '🍕 Food')">🍕<br>Food</button>
+                                    <button class="category-btn" data-category="drinks" onclick="selectCategory('drinks', '☕ Drinks')">☕<br>Drinks</button>
+                                    <button class="category-btn" data-category="entertainment" onclick="selectCategory('entertainment', '🎬 Entertainment')">🎬<br>Entertainment</button>
+                                    <button class="category-btn" data-category="transport" onclick="selectCategory('transport', '🚗 Transport')">🚗<br>Transport</button>
+                                    <button class="category-btn" data-category="shopping" onclick="selectCategory('shopping', '🛍️ Shopping')">🛍️<br>Shopping</button>
+                                    <button class="category-btn" data-category="other" onclick="selectCategory('other', '💵 Other')">💵<br>Other</button>
+                                </div>
+                            </div>
+
+                            <!-- Quick Amount Buttons -->
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">Quick Amounts</label>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 0.5rem;">
+                                    <button class="quick-btn" onclick="setQuickAmount(200, 'Snacks')">₹200<br><small>Snacks</small></button>
+                                    <button class="quick-btn" onclick="setQuickAmount(500, 'Coffee')">₹500<br><small>Coffee</small></button>
+                                    <button class="quick-btn" onclick="setQuickAmount(1000, 'Lunch')">₹1000<br><small>Lunch</small></button>
+                                    <button class="quick-btn" onclick="setQuickAmount(2000, 'Dinner')">₹2000<br><small>Dinner</small></button>
+                                    <button class="quick-btn" onclick="setQuickAmount(1500, 'Movies')">₹1500<br><small>Movies</small></button>
+                                    <button class="quick-btn" onclick="setQuickAmount(3000, 'Travel')">₹3000<br><small>Travel</small></button>
+                                </div>
+                            </div>
+
+                            <!-- People Count -->
+                            <div style="margin-bottom: 2rem;">
+                                <label style="display: block; margin-bottom: 1rem; font-weight: 600; color: #333;">Number of People</label>
+                                <div style="display: flex; justify-content: center; align-items: center; gap: 1rem;">
+                                    <button class="people-btn" onclick="changePeopleCount(-1)" style="width: 50px; height: 50px; border-radius: 50%; background: #dc3545; color: white; border: none; font-size: 1.5rem; cursor: pointer;">-</button>
+                                    <div style="text-align: center;">
+                                        <input type="number" id="quickPeople" value="2" min="2" max="20" 
+                                               style="font-size: 2rem; font-weight: bold; color: #667eea; text-align: center; width: 80px; border: none; background: none;">
+                                        <div style="color: #666; font-size: 0.9rem;">people</div>
+                                    </div>
+                                    <button class="people-btn" onclick="changePeopleCount(1)" style="width: 50px; height: 50px; border-radius: 50%; background: #28a745; color: white; border: none; font-size: 1.5rem; cursor: pointer;">+</button>
+                                </div>
+                            </div>
+
+                            <!-- Split Result -->
+                            <div id="splitResult" style="text-align: center; padding: 2rem; background: linear-gradient(135deg, #28a745, #20c997); border-radius: 12px; color: white; display: none; margin-bottom: 2rem;">
+                                <h3 style="margin: 0 0 1rem 0;">💰 Split Result</h3>
+                                <div style="font-size: 3rem; font-weight: bold; margin: 1rem 0;">₹<span id="perPersonAmount">0</span></div>
+                                <div style="font-size: 1.1rem; opacity: 0.9;">per person</div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                                <button class="btn btn-primary" onclick="calculateSplit()">
+                                    <i class="fas fa-calculator"></i> Calculate Split
+                                </button>
+                                <button class="btn btn-outline" onclick="addNewSplit()">
+                                    <i class="fas fa-plus"></i> Add to History
+                                </button>
+                                <button class="btn btn-outline" onclick="shareSplit()">
+                                    <i class="fas fa-share"></i> Share Result
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Splits -->
+                    <div class="card" style="margin-top: 2rem;">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-history"></i> Recent Quick Splits</h3>
+                            <button class="btn btn-outline btn-sm" onclick="clearHistory()" style="font-size: 0.85rem;">Clear All</button>
+                        </div>
+                        <div id="splitsList">
+                            <!-- Recent splits will be shown here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Group Split Tab -->
+                <div id="group-split" class="tab-content">
+                    <div class="card" style="box-shadow: 0 8px 24px rgba(0,0,0,0.1);">
+                        <div class="card-header" style="text-align: center; background: linear-gradient(135deg, #fd7e14 0%, #e83e8c 100%); color: white;">
+                            <h3 style="margin: 0; font-size: 1.5rem;">👥 Group Split Management</h3>
+                            <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">Create and manage expense groups</p>
+                        </div>
+                        
+                        <div class="card-content">
+                            <!-- Create New Group -->
+                            <div style="margin-bottom: 2rem; padding: 1.5rem; background: #f8f9fa; border-radius: 8px;">
+                                <h4 style="margin: 0 0 1rem 0; color: #333;">🆕 Create New Group</h4>
+                                
+                                <!-- Step 1: Group Name -->
+                                <div style="margin-bottom: 1.5rem;">
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">Group Name</label>
+                                    <input type="text" id="newGroupName" placeholder="e.g., Weekend Trip Friends" 
+                                           style="width: 100%; padding: 0.75rem; border: 2px solid #e6e8ee; border-radius: 8px;">
+                                </div>
+                                
+                                <!-- Quick Group Templates -->
+                                <div style="margin-bottom: 1.5rem;">
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">Quick Templates</label>
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem;">
+                                        <button class="category-btn" onclick="setGroupTemplate('Friends')">👫<br>Friends</button>
+                                        <button class="category-btn" onclick="setGroupTemplate('Roommates')">🏠<br>Roommates</button>
+                                        <button class="category-btn" onclick="setGroupTemplate('Trip Buddies')">✈️<br>Trip</button>
+                                        <button class="category-btn" onclick="setGroupTemplate('Family')">👨‍👩‍👧<br>Family</button>
+                                        <button class="category-btn" onclick="setGroupTemplate('Office Team')">🏢<br>Office</button>
+                                        <button class="category-btn" onclick="setGroupTemplate('Study Group')">📚<br>Study</button>
+                                    </div>
+                                </div>
+
+                                <!-- Step 2: Add Members -->
+                                <div style="margin-bottom: 1.5rem;">
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">Add Members</label>
+                                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                                        <input type="text" id="newMemberName" placeholder="Enter member name" 
+                                               style="flex: 1; padding: 0.75rem; border: 2px solid #e6e8ee; border-radius: 8px;">
+                                        <button class="btn btn-outline" onclick="addMemberToNewGroup()">
+                                            <i class="fas fa-user-plus"></i> Add
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Members List -->
+                                    <div id="newGroupMembers" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
+                                        <span class="member-tag" style="background: #28a745; color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.9rem;">
+                                            👤 You <small>(Creator)</small>
+                                        </span>
+                                    </div>
+                                    
+                                </div>
+
+                                <!-- Step 3: Create Group -->
+                                <div style="text-align: center;">
+                                    <button class="btn btn-primary" onclick="createGroupWithMembers()" style="padding: 0.75rem 2rem;">
+                                        <i class="fas fa-users"></i> Create Group
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- My Groups -->
+                            <div id="myGroups">
+                                <!-- This should be replaced by JavaScript, but if not, at least shows something -->
+                                <div class="card" style="margin-top: 1.5rem;">
+                                    <div class="card-header">
+                                        <h4 style="margin: 0;">📁 My Groups</h4>
+                                    </div>
+                                    <div class="card-content">
+                                        <div style="text-align: center; padding: 2rem; color: #666;">
+                                            <p>Loading groups...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Group Detail View -->
+                            <div id="groupDetailView" style="display: none; margin-top: 2rem;">
+                                <!-- Detailed group view will be shown here -->
+                            </div>
+
+                            <!-- Add Expense Modal (will be created dynamically) -->
+                            <div id="addExpenseModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+                                <div style="background: white; padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                                        <h3 style="margin: 0;">💰 Add Expense</h3>
+                                        <button onclick="closeExpenseModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+                                    </div>
+                                    
+                                    <div style="margin-bottom: 1rem;">
+                                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Description</label>
+                                        <input type="text" id="expenseDescription" placeholder="e.g., Dinner at restaurant" style="width: 100%; padding: 0.75rem; border: 2px solid #e6e8ee; border-radius: 8px;">
+                                    </div>
+                                    
+                                    <div style="margin-bottom: 1rem;">
+                                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Amount</label>
+                                        <input type="number" id="expenseAmount" placeholder="0" style="width: 100%; padding: 0.75rem; border: 2px solid #e6e8ee; border-radius: 8px;">
+                                    </div>
+                                    
+                                    <div style="margin-bottom: 1rem;">
+                                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Paid By</label>
+                                        <select id="expensePaidBy" style="width: 100%; padding: 0.75rem; border: 2px solid #e6e8ee; border-radius: 8px;">
+                                            <!-- Will be populated with group members -->
+                                        </select>
+                                    </div>
+                                    
+                                    <div style="margin-bottom: 1.5rem;">
+                                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Split Among</label>
+                                        <div id="splitAmongMembers">
+                                            <!-- Checkboxes for group members will be added here -->
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="display: flex; gap: 1rem;">
+                                        <button class="btn btn-primary" onclick="saveExpense()" style="flex: 1;">
+                                            <i class="fas fa-save"></i> Save Expense
+                                        </button>
+                                        <button class="btn btn-outline" onclick="closeExpenseModal()" style="flex: 1;">
+                                            <i class="fas fa-times"></i> Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>PocketPal - Smart Virtual Wallet for Students</p>
+            <p>&copy; 2025 PocketPal Inc. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="scripts/script.js"></script>
+    <script src="scripts/split.js"></script>
+    
+    <!-- Tabbed Split Interface Functions -->
+    <script>
+        // Global variables
+        let userGroups = JSON.parse(localStorage.getItem('userGroups') || '[]');
+        let splitHistory = JSON.parse(localStorage.getItem('splitHistory') || '[]');
+        
+        // Tab switching functionality
+        function switchSplitTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName).classList.add('active');
+            
+            if (tabName === 'group-split') {
+                loadUserGroups();
+            }
+        }
+        
+        // Quick Split Calculator Functions
+        let selectedCategory = '';
+        let currentGroupId = null;
+        
+        function setQuickAmount(amount, description) {
+            document.getElementById('quickAmount').value = amount;
+            if (description) {
+                document.getElementById('quickDescription').value = description;
+            }
+            calculateSplit();
+            
+            // Visual feedback
+            event.target.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                event.target.style.transform = 'scale(1)';
+            }, 150);
+        }
+        
+        function selectCategory(category, displayName) {
+            selectedCategory = category;
+            
+            // Update visual state
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Auto-fill description if empty
+            const descInput = document.getElementById('quickDescription');
+            if (!descInput.value) {
+                descInput.value = displayName.split(' ')[1]; // Get text after emoji
+            }
+        }
+        
+        function changePeopleCount(change) {
+            const peopleInput = document.getElementById('quickPeople');
+            let current = parseInt(peopleInput.value);
+            current += change;
+            if (current >= 2 && current <= 20) {
+                peopleInput.value = current;
+                calculateSplit();
+                
+                // Visual feedback
+                event.target.style.transform = 'scale(0.9)';
+                setTimeout(() => {
+                    event.target.style.transform = 'scale(1)';
+                }, 150);
+            }
+        }
+        
+        function calculateSplit() {
+            const amount = parseFloat(document.getElementById('quickAmount').value);
+            const people = parseInt(document.getElementById('quickPeople').value);
+            const resultDiv = document.getElementById('splitResult');
+            const perPersonSpan = document.getElementById('perPersonAmount');
+            
+            if (amount && amount > 0 && people && people >= 2) {
+                const perPerson = (amount / people).toFixed(2);
+                perPersonSpan.textContent = perPerson;
+                
+                // Show result with animation
+                if (resultDiv.style.display !== 'block') {
+                    resultDiv.style.opacity = '0';
+                    resultDiv.style.transform = 'translateY(10px)';
+                    resultDiv.style.display = 'block';
+                    
+                    setTimeout(() => {
+                        resultDiv.style.transition = 'all 0.3s ease';
+                        resultDiv.style.opacity = '1';
+                        resultDiv.style.transform = 'translateY(0)';
+                    }, 50);
+                }
+            } else {
+                resultDiv.style.display = 'none';
+            }
+        }
+        
+        function addNewSplit() {
+            const amount = parseFloat(document.getElementById('quickAmount').value);
+            const people = parseInt(document.getElementById('quickPeople').value);
+            const description = document.getElementById('quickDescription').value.trim();
+            
+            if (!amount || amount <= 0) {
+                showToast('Please enter a valid amount!', 'warning');
+                return;
+            }
+            
+            if (!people || people < 2) {
+                showToast('Please enter at least 2 people!', 'warning');
+                return;
+            }
+            
+            const perPerson = (amount / people).toFixed(2);
+            const finalDescription = description || getBillDescription(amount);
+            const categoryDisplay = selectedCategory ? getCategoryEmoji(selectedCategory) + ' ' : '';
+            
+            const splitData = {
+                id: Date.now(),
+                description: categoryDisplay + finalDescription,
+                total: amount,
+                people: people,
+                perPerson: perPerson,
+                category: selectedCategory,
+                date: new Date().toLocaleDateString()
+            };
+            
+            // Check if this split already exists
+            const lastSplit = splitHistory[0];
+            if (lastSplit && lastSplit.total == amount && lastSplit.people == people && lastSplit.description == splitData.description) {
+                showToast('This split is already saved!', 'info');
+                return;
+            }
+            
+            splitHistory.unshift(splitData);
+            if (splitHistory.length > 10) splitHistory.pop(); // Keep only 10 recent splits
+            localStorage.setItem('splitHistory', JSON.stringify(splitHistory));
+            updateSplitHistory();
+            showToast('✓ Split added to history!', 'success');
+        }
+        
+        function getCategoryEmoji(category) {
+            const emojis = {
+                food: '🍕',
+                drinks: '☕',
+                entertainment: '🎬',
+                transport: '🚗',
+                shopping: '🛍️',
+                other: '💵'
+            };
+            return emojis[category] || '💵';
+        }
+        
+        function shareSplit() {
+            const amount = parseFloat(document.getElementById('quickAmount').value);
+            const people = parseInt(document.getElementById('quickPeople').value);
+            
+            if (!amount || !people) {
+                showToast('Please calculate a split first!', 'warning');
+                return;
+            }
+            
+            const perPerson = (amount / people).toFixed(2);
+            const message = `💸 Bill Split\n\nTotal: ₹${amount}\nPeople: ${people}\nPer person: ₹${perPerson}\n\nCalculated with PocketPal`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Bill Split Calculation',
+                    text: message
+                });
+            } else {
+                navigator.clipboard.writeText(message).then(() => {
+                    showToast('✓ Copied to clipboard!', 'success');
+                }).catch(() => {
+                    showToast('Copy failed', 'error');
+                });
+            }
+        }
+        
+        function getBillDescription(amount) {
+            if (amount <= 500) return '🍕 Snacks/Coffee';
+            if (amount <= 1000) return '🍽️ Meal';
+            if (amount <= 2000) return '🎬 Entertainment';
+            if (amount <= 5000) return '🚗 Transport/Trip';
+            return '📅 Large Expense';
+        }
+        
+        function updateSplitHistory() {
+            const splitsList = document.getElementById('splitsList');
+            if (splitHistory.length === 0) {
+                splitsList.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #666;">
+                        <i class="fas fa-calculator" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <p>No splits yet!</p>
+                        <p style="font-size: 0.9rem;">Use the calculator to create your first split.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            splitsList.innerHTML = splitHistory.slice(0, 5).map(split => `
+                <div class="split-item" style="padding: 1rem; border: 1px solid #e6e8ee; border-radius: 8px; margin-bottom: 0.5rem; transition: all 0.3s ease;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h4 style="margin: 0 0 0.25rem 0; font-size: 1rem;">${split.description}</h4>
+                            <p style="margin: 0; color: #666; font-size: 0.9rem;">Total: ₹${split.total} • ${split.people} people</p>
+                            <small style="color: #28a745; font-weight: 600;">₹${split.perPerson} per person</small>
+                        </div>
+                        <div style="text-align: right;">
+                            <small style="color: #666;">${split.date}</small>
+                            <br>
+                            <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+                                <button class="btn btn-sm btn-outline" onclick="reuseSplit(${split.id})" title="Use again">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline" onclick="shareSavedSplit(${split.id})" title="Share">
+                                    <i class="fas fa-share"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function reuseSplit(splitId) {
+            const split = splitHistory.find(s => s.id === splitId);
+            if (split) {
+                document.getElementById('quickAmount').value = split.total;
+                document.getElementById('quickPeople').value = split.people;
+                calculateSplit();
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                showToast('🔄 Split loaded!', 'info');
+            }
+        }
+        
+        function shareSavedSplit(splitId) {
+            const split = splitHistory.find(s => s.id === splitId);
+            if (split) {
+                const message = `💸 ${split.description}\n\nTotal: ₹${split.total}\nPeople: ${split.people}\nPer person: ₹${split.perPerson}\n\nCalculated with PocketPal`;
+                
+                if (navigator.share) {
+                    navigator.share({ title: 'Bill Split', text: message });
+                } else {
+                    navigator.clipboard.writeText(message).then(() => {
+                        showToast('✓ Copied to clipboard!', 'success');
+                    });
+                }
+            }
+        }
+        
+        function clearHistory() {
+            if (confirm('Clear all saved splits?')) {
+                splitHistory = [];
+                localStorage.removeItem('splitHistory');
+                updateSplitHistory();
+                showToast('🗑️ History cleared', 'info');
+            }
+        }
+        
+        // Group Functions
+        let newGroupMembers = ['You'];
+        
+        function setGroupTemplate(templateName) {
+            document.getElementById('newGroupName').value = templateName;
+            
+            // Update visual state
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+        
+        function addMemberToNewGroup() {
+            const memberName = document.getElementById('newMemberName').value.trim();
+            if (!memberName) {
+                showToast('Please enter a member name!', 'warning');
+                return;
+            }
+            
+            if (newGroupMembers.includes(memberName)) {
+                showToast('Member already added!', 'warning');
+                return;
+            }
+            
+            if (newGroupMembers.length >= 10) {
+                showToast('Maximum 10 members allowed!', 'warning');
+                return;
+            }
+            
+            newGroupMembers.push(memberName);
+            document.getElementById('newMemberName').value = '';
+            updateNewGroupMembersList();
+            showToast(`${memberName} added!`, 'success');
+        }
+        
+        function quickAddMember(memberName) {
+            if (newGroupMembers.includes(memberName)) {
+                showToast('Member already added!', 'warning');
+                return;
+            }
+            
+            if (newGroupMembers.length >= 10) {
+                showToast('Maximum 10 members allowed!', 'warning');
+                return;
+            }
+            
+            newGroupMembers.push(memberName);
+            updateNewGroupMembersList();
+            showToast(`${memberName} added!`, 'success');
+        }
+        
+        function removeMemberFromNewGroup(memberName) {
+            if (memberName === 'You') {
+                showToast('Cannot remove yourself!', 'warning');
+                return;
+            }
+            
+            newGroupMembers = newGroupMembers.filter(m => m !== memberName);
+            updateNewGroupMembersList();
+            showToast(`${memberName} removed!`, 'info');
+        }
+        
+        function updateNewGroupMembersList() {
+            const container = document.getElementById('newGroupMembers');
+            container.innerHTML = newGroupMembers.map((member, index) => {
+                const isCreator = member === 'You';
+                return `
+                    <span class="member-tag ${!isCreator ? 'removable' : ''}" 
+                          ${!isCreator ? `onclick="removeMemberFromNewGroup('${member}')"` : ''}
+                          style="background: ${isCreator ? '#28a745' : '#667eea'};">
+                        👤 ${member} 
+                        ${isCreator ? '<small>(Creator)</small>' : '<button class="remove-member">&times;</button>'}
+                    </span>
+                `;
+            }).join('');
+        }
+        
+        function createGroupWithMembers() {
+            const groupName = document.getElementById('newGroupName').value.trim();
+            
+            if (!groupName) {
+                showToast('Please enter a group name!', 'warning');
+                return;
+            }
+            
+            if (newGroupMembers.length < 2) {
+                showToast('Add at least one other member!', 'warning');
+                return;
+            }
+            
+            const group = {
+                id: Date.now(),
+                name: groupName,
+                members: [...newGroupMembers],
+                expenses: [],
+                created: new Date().toLocaleDateString()
+            };
+            
+            userGroups.push(group);
+            localStorage.setItem('userGroups', JSON.stringify(userGroups));
+            updateGroupsList();
+            
+            // Reset form
+            document.getElementById('newGroupName').value = '';
+            newGroupMembers = ['You'];
+            updateNewGroupMembersList();
+            document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+            
+            showToast(`Group "${groupName}" created with ${group.members.length} members!`, 'success');
+        }
+        
+        function createQuickGroup(groupName) {
+            const group = {
+                id: Date.now(),
+                name: groupName,
+                members: ['You'],
+                expenses: [],
+                created: new Date().toLocaleDateString()
+            };
+            
+            userGroups.push(group);
+            localStorage.setItem('userGroups', JSON.stringify(userGroups));
+            updateGroupsList();
+            showToast(`Group "${groupName}" created!`, 'success');
+        }
+        
+        function createCustomGroup() {
+            const groupName = document.getElementById('customGroupName').value.trim();
+            if (groupName) {
+                createQuickGroup(groupName);
+                document.getElementById('customGroupName').value = '';
+            } else {
+                showToast('Please enter a group name!', 'warning');
+            }
+        }
+        
+        function updateGroupsList() {
+            const myGroupsDiv = document.getElementById('myGroups');
+            
+            if (userGroups.length === 0) {
+                myGroupsDiv.innerHTML = `
+                    <div class="card" style="margin-top: 1.5rem;">
+                        <div class="card-header">
+                            <h4 style="margin: 0;">📁 My Groups</h4>
+                        </div>
+                        <div class="card-content">
+                            <div style="text-align: center; padding: 2rem; color: #666;">
+                                <i class="fas fa-users" style="font-size: 3rem; margin-bottom: 1rem; color: #ddd;"></i>
+                                <h4 style="color: #333; margin-bottom: 0.5rem;">No groups yet!</h4>
+                                <p style="margin: 0 0 1.5rem 0;">Create your first group using the form above to start tracking shared expenses.</p>
+                                
+                                <div style="background: #e3f2fd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                                    <h5 style="color: #1976d2; margin: 0 0 0.5rem 0;">📋 How it works:</h5>
+                                    <ul style="text-align: left; color: #1565c0; font-size: 0.9rem; margin: 0; padding-left: 1.2rem;">
+                                        <li>Create a group and add members</li>
+                                        <li>Track who paid for shared expenses</li>
+                                        <li>See automatic balance calculations</li>
+                                        <li>Get notified who owes what</li>
+                                    </ul>
+                                </div>
+                                
+                                <p style="font-size: 0.9rem; color: #888; margin: 0;">
+                                    Perfect for roommates, trips, office lunches, and more!
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            myGroupsDiv.innerHTML = `
+                <div class="card" style="margin-top: 1.5rem;">
+                    <div class="card-header">
+                        <h4 style="margin: 0;">📁 My Groups (${userGroups.length})</h4>
+                    </div>
+                    <div class="card-content">
+                        ${userGroups.map(group => `
+                            <div class="group-card" style="border: 1px solid #e6e8ee; border-radius: 8px; padding: 1rem; margin-bottom: 0.5rem; background: #fafafa; transition: all 0.3s ease;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <h5 style="margin: 0 0 0.25rem 0; color: #333;">${group.name}</h5>
+                                        <small style="color: #666;">
+                                            ${group.members.length} members • 
+                                            ${group.expenses ? group.expenses.length : 0} expenses • 
+                                            Created ${group.created}
+                                        </small>
+                                    </div>
+                                    <div>
+                                        <button class="btn btn-sm btn-primary" onclick="openGroup(${group.id})" style="font-size: 0.8rem;">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function openGroup(groupId) {
+            const group = userGroups.find(g => g.id === groupId);
+            if (group) {
+                currentGroupId = groupId;
+                showGroupDetails(group);
+            }
+        }
+        
+        function showGroupDetails(group) {
+            const detailView = document.getElementById('groupDetailView');
+            const myGroups = document.getElementById('myGroups');
+            
+            // Hide groups list, show detail view
+            myGroups.style.display = 'none';
+            detailView.style.display = 'block';
+            
+            // Calculate balances
+            const balances = calculateGroupBalances(group);
+            const totalExpenses = group.expenses ? group.expenses.reduce((sum, exp) => sum + exp.amount, 0) : 0;
+            
+            detailView.innerHTML = `
+                <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 2rem;">
+                    <div>
+                        <h3 style="margin: 0; color: #333;">👥 ${group.name}</h3>
+                        <p style="margin: 0.5rem 0 0 0; color: #666;">${group.members.length} members • Total expenses: ₹${totalExpenses.toFixed(2)}</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline btn-sm" onclick="backToGroups()" style="margin-right: 0.5rem;">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="toggleMemberManagement(${group.id})" style="margin-right: 0.5rem;">
+                            <i class="fas fa-user-plus"></i> Members
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="openAddExpenseModal(${group.id})">
+                            <i class="fas fa-plus"></i> Add Expense
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Member Management (hidden by default) -->
+                <div id="memberManagement-${group.id}" style="display: none; margin-bottom: 1.5rem;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 style="margin: 0;">👥 Manage Members</h4>
+                        </div>
+                        <div class="card-content">
+                            <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                                <input type="text" id="addMemberInput-${group.id}" placeholder="Enter member name" 
+                                       style="flex: 1; padding: 0.75rem; border: 2px solid #e6e8ee; border-radius: 8px;">
+                                <button class="btn btn-primary" onclick="addMemberToGroup(${group.id})">
+                                    <i class="fas fa-user-plus"></i> Add
+                                </button>
+                            </div>
+                            
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Current Members:</label>
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                    ${group.members.map(member => `
+                                        <span class="member-tag ${member !== 'You' ? 'removable' : ''}" 
+                                              ${member !== 'You' ? `onclick="removeMemberFromGroup(${group.id}, '${member}')"` : ''}
+                                              style="background: ${member === 'You' ? '#28a745' : '#667eea'};">
+                                            👤 ${member} 
+                                            ${member === 'You' ? '<small>(You)</small>' : '<button class="remove-member">&times;</button>'}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            
+                            <div style="padding: 1rem; background: #f8f9fa; border-radius: 8px; font-size: 0.9rem; color: #666;">
+                                <strong>⚠️ Note:</strong> Removing members will not affect existing expenses, but they won't be available for new expenses.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Members & Balances -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h4 style="margin: 0;">📊 Balances</h4>
+                    </div>
+                    <div class="card-content">
+                        ${group.members.length === 1 ? 
+                            '<p style="text-align: center; color: #666; padding: 1rem;">Add more members to track balances</p>' :
+                            balances.map(balance => `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-bottom: 1px solid #f0f0f0;">
+                                    <div>
+                                        <strong>${balance.member}</strong>
+                                    </div>
+                                    <div style="font-weight: 600; color: ${balance.amount >= 0 ? '#28a745' : '#dc3545'};">
+                                        ${balance.amount >= 0 ? '+' : ''}₹${balance.amount.toFixed(2)}
+                                        <small style="color: #666; font-weight: normal;">
+                                            ${balance.amount >= 0 ? ' (gets back)' : ' (owes)'}
+                                        </small>
+                                    </div>
+                                </div>
+                            `).join('')
+                        }
+                    </div>
+                </div>
+                
+                <!-- Recent Expenses -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4 style="margin: 0;">📅 Recent Expenses</h4>
+                    </div>
+                    <div class="card-content">
+                        ${!group.expenses || group.expenses.length === 0 ? 
+                            '<p style="text-align: center; color: #666; padding: 2rem;">No expenses yet. Add your first expense!</p>' :
+                            group.expenses.slice(0, 10).map(expense => `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #f0f0f0;">
+                                    <div>
+                                        <div style="font-weight: 600; margin-bottom: 0.25rem;">${expense.description}</div>
+                                        <small style="color: #666;">Paid by ${expense.paidBy} • ${expense.date}</small>
+                                        <div style="font-size: 0.85rem; color: #888; margin-top: 0.25rem;">
+                                            Split among: ${expense.splitAmong.join(', ')}
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 1.1rem; font-weight: 600; color: #333;">₹${expense.amount.toFixed(2)}</div>
+                                        <div style="font-size: 0.85rem; color: #666;">₹${(expense.amount / expense.splitAmong.length).toFixed(2)} each</div>
+                                    </div>
+                                </div>
+                            `).join('')
+                        }
+                    </div>
+                </div>
+            `;
+        }
+        
+        function calculateGroupBalances(group) {
+            const balances = {};
+            
+            // Initialize balances for all members
+            group.members.forEach(member => {
+                balances[member] = 0;
+            });
+            
+            // Calculate balances based on expenses
+            if (group.expenses) {
+                group.expenses.forEach(expense => {
+                    const perPersonAmount = expense.amount / expense.splitAmong.length;
+                    
+                    // Person who paid gets credited
+                    balances[expense.paidBy] += expense.amount;
+                    
+                    // Everyone who benefited gets debited
+                    expense.splitAmong.forEach(member => {
+                        balances[member] -= perPersonAmount;
+                    });
+                });
+            }
+            
+            return Object.entries(balances).map(([member, amount]) => ({
+                member,
+                amount
+            })).sort((a, b) => b.amount - a.amount);
+        }
+        
+        function toggleMemberManagement(groupId) {
+            const memberMgmt = document.getElementById(`memberManagement-${groupId}`);
+            if (memberMgmt.style.display === 'none') {
+                memberMgmt.style.display = 'block';
+            } else {
+                memberMgmt.style.display = 'none';
+            }
+        }
+        
+        function addMemberToGroup(groupId) {
+            const input = document.getElementById(`addMemberInput-${groupId}`);
+            const memberName = input.value.trim();
+            
+            if (!memberName) {
+                showToast('Please enter a member name!', 'warning');
+                return;
+            }
+            
+            const group = userGroups.find(g => g.id === groupId);
+            if (!group) return;
+            
+            if (group.members.includes(memberName)) {
+                showToast('Member already exists!', 'warning');
+                return;
+            }
+            
+            if (group.members.length >= 15) {
+                showToast('Maximum 15 members allowed!', 'warning');
+                return;
+            }
+            
+            group.members.push(memberName);
+            localStorage.setItem('userGroups', JSON.stringify(userGroups));
+            
+            input.value = '';
+            showGroupDetails(group);
+            showToast(`${memberName} added to group!`, 'success');
+        }
+        
+        function removeMemberFromGroup(groupId, memberName) {
+            if (memberName === 'You') {
+                showToast('Cannot remove yourself from the group!', 'warning');
+                return;
+            }
+            
+            if (!confirm(`Remove ${memberName} from this group?`)) {
+                return;
+            }
+            
+            const group = userGroups.find(g => g.id === groupId);
+            if (!group) return;
+            
+            // Check if member has expenses
+            const hasExpenses = group.expenses && group.expenses.some(exp => 
+                exp.paidBy === memberName || exp.splitAmong.includes(memberName)
+            );
+            
+            if (hasExpenses) {
+                const confirmMsg = `${memberName} has expenses in this group. Removing them may affect balances. Continue?`;
+                if (!confirm(confirmMsg)) {
+                    return;
+                }
+            }
+            
+            group.members = group.members.filter(m => m !== memberName);
+            localStorage.setItem('userGroups', JSON.stringify(userGroups));
+            
+            showGroupDetails(group);
+            showToast(`${memberName} removed from group!`, 'info');
+        }
+        
+        function backToGroups() {
+            const detailView = document.getElementById('groupDetailView');
+            const myGroups = document.getElementById('myGroups');
+            
+            detailView.style.display = 'none';
+            myGroups.style.display = 'block';
+            currentGroupId = null;
+        }
+        
+        function openAddExpenseModal(groupId) {
+            const group = userGroups.find(g => g.id === groupId);
+            if (!group) return;
+            
+            const modal = document.getElementById('addExpenseModal');
+            const paidBySelect = document.getElementById('expensePaidBy');
+            const splitAmongDiv = document.getElementById('splitAmongMembers');
+            
+            // Populate paid by dropdown
+            paidBySelect.innerHTML = group.members.map(member => 
+                `<option value="${member}">${member}</option>`
+            ).join('');
+            
+            // Populate split among checkboxes
+            splitAmongDiv.innerHTML = group.members.map(member => `
+                <div style="margin-bottom: 0.5rem;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" value="${member}" checked style="margin-right: 0.5rem;">
+                        ${member}
+                    </label>
+                </div>
+            `).join('');
+            
+            // Show modal
+            modal.style.display = 'flex';
+        }
+        
+        function closeExpenseModal() {
+            const modal = document.getElementById('addExpenseModal');
+            modal.style.display = 'none';
+            
+            // Clear form
+            document.getElementById('expenseDescription').value = '';
+            document.getElementById('expenseAmount').value = '';
+        }
+        
+        function saveExpense() {
+            const description = document.getElementById('expenseDescription').value.trim();
+            const amount = parseFloat(document.getElementById('expenseAmount').value);
+            const paidBy = document.getElementById('expensePaidBy').value;
+            const splitAmongCheckboxes = document.querySelectorAll('#splitAmongMembers input[type="checkbox"]:checked');
+            const splitAmong = Array.from(splitAmongCheckboxes).map(cb => cb.value);
+            
+            if (!description) {
+                showToast('Please enter a description!', 'warning');
+                return;
+            }
+            
+            if (!amount || amount <= 0) {
+                showToast('Please enter a valid amount!', 'warning');
+                return;
+            }
+            
+            if (splitAmong.length === 0) {
+                showToast('Please select who to split among!', 'warning');
+                return;
+            }
+            
+            const group = userGroups.find(g => g.id === currentGroupId);
+            if (!group) return;
+            
+            // Create expense object
+            const expense = {
+                id: Date.now(),
+                description,
+                amount,
+                paidBy,
+                splitAmong,
+                date: new Date().toLocaleDateString()
+            };
+            
+            // Add expense to group
+            if (!group.expenses) group.expenses = [];
+            group.expenses.unshift(expense);
+            
+            // Save to localStorage
+            localStorage.setItem('userGroups', JSON.stringify(userGroups));
+            
+            // Close modal and refresh view
+            closeExpenseModal();
+            showGroupDetails(group);
+            showToast('✓ Expense added successfully!', 'success');
+        }
+        
+        function loadUserGroups() {
+            updateGroupsList();
+        }
+        
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed; top: 20px; right: 20px; z-index: 10000;
+                background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : type === 'warning' ? '#ffc107' : '#17a2b8'};
+                color: white; padding: 0.75rem 1.25rem; border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                font-weight: 500; animation: slideIn 0.3s ease;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add animation styles
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes slideOut {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(100%); opacity: 0; }
+                }
+                .split-item:hover, .group-card:hover {
+                    transform: translateX(4px);
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    border-color: #667eea;
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // Auto-calculate when user types
+            const quickAmountInput = document.getElementById('quickAmount');
+            const quickPeopleInput = document.getElementById('quickPeople');
+            
+            if (quickAmountInput) {
+                quickAmountInput.addEventListener('input', calculateSplit);
+            }
+            if (quickPeopleInput) {
+                quickPeopleInput.addEventListener('input', calculateSplit);
+            }
+            
+            // Load initial data
+            updateSplitHistory();
+            
+            // Initialize new group members list
+            updateNewGroupMembersList();
+            
+            // Initialize groups list (so it's ready when tab is switched)
+            updateGroupsList();
+            
+            // Add Enter key support for member inputs
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    if (e.target.id === 'newMemberName') {
+                        addMemberToNewGroup();
+                    } else if (e.target.id && e.target.id.startsWith('addMemberInput-')) {
+                        const groupId = parseInt(e.target.id.replace('addMemberInput-', ''));
+                        addMemberToGroup(groupId);
+                    }
+                }
+            });
+            
+        });
+    </script>
+</body>
+
+</html>

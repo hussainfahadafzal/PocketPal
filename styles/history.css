@@ -1,0 +1,223 @@
+/* History Page Specific Styles */
+.history-controls {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+@media (min-width: 992px) {
+    .history-controls {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.filter-card,
+.summary-card {
+    background: var(--light-color);
+    border: 1px solid var(--border-gray);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--box-shadow);
+    padding: 1.5rem;
+    transition: var(--transition);
+}
+
+.filter-card:hover,
+.summary-card:hover {
+    box-shadow: var(--box-shadow-md);
+    border-color: var(--primary-light);
+}
+
+.filter-card h3,
+.summary-card h3 {
+    margin-bottom: 1.5rem;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-group {
+    margin-bottom: 1rem;
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.filter-group select,
+.filter-group input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--light-gray);
+    border-radius: var(--border-radius);
+    font-family: inherit;
+}
+
+.date-range {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.date-range span {
+    color: var(--gray-color);
+}
+
+.summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.stat-item {
+    background: var(--light-color);
+    border: 1px solid var(--border-gray);
+    padding: 1.25rem;
+    border-radius: var(--border-radius);
+    text-align: center;
+    transition: var(--transition);
+}
+
+.stat-item:hover {
+    box-shadow: var(--box-shadow);
+    border-color: var(--primary-light);
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--gray-color);
+    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.stat-value.positive {
+    color: var(--success-color);
+}
+
+.stat-value.negative {
+    color: var(--danger-color);
+}
+
+.history-table-container {
+    background: var(--light-color);
+    border: 1px solid var(--border-gray);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--box-shadow);
+    padding: 1.5rem;
+    overflow-x: auto;
+    transition: var(--transition);
+}
+
+.history-table-container:hover {
+    box-shadow: var(--box-shadow-md);
+    border-color: var(--primary-light);
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.history-table th {
+    text-align: left;
+    padding: 1rem;
+    background-color: var(--light-gray);
+    font-weight: 600;
+}
+
+.history-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--light-gray);
+}
+
+.history-table tr:last-child td {
+    border-bottom: none;
+}
+
+.history-table .loading-row {
+    text-align: center;
+    color: var(--gray-color);
+}
+
+.history-table .loading-row td {
+    padding: 2rem;
+}
+
+.transaction-income {
+    color: var(--success-color);
+    font-weight: 600;
+}
+
+.transaction-expense {
+    color: var(--danger-color);
+    font-weight: 600;
+}
+
+.category-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.category-food {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+}
+
+.category-travel {
+    background-color: rgba(23, 162, 184, 0.1);
+    color: #17a2b8;
+}
+
+.category-entertainment {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+}
+
+.category-study {
+    background-color: rgba(108, 117, 125, 0.1);
+    color: #6c757d;
+}
+
+.category-other {
+    background-color: rgba(111, 66, 193, 0.1);
+    color: #6f42c1;
+}
+
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+#pageInfo {
+    font-weight: 500;
+    color: var(--gray-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+
+    .history-table th,
+    .history-table td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .filter-card,
+    .summary-card {
+        padding: 1rem;
+    }
+}

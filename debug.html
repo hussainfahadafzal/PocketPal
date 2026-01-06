@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PocketPal Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { border: 1px solid #ccc; margin: 10px 0; padding: 15px; }
+        button { margin: 5px; padding: 10px 15px; cursor: pointer; }
+        #output { background: #f5f5f5; padding: 10px; margin: 10px 0; white-space: pre-wrap; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>PocketPal Debug Test</h1>
+    
+    <div class="test-section">
+        <h2>1. Data Manager Test</h2>
+        <button onclick="testDataManager()">Test Data Manager</button>
+        <button onclick="clearAllData()">Clear All Data</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Add Money Test</h2>
+        <button onclick="testAddMoney()">Add ₹1000</button>
+        <button onclick="checkWallet()">Check Wallet</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Add Expense Test</h2>
+        <button onclick="testAddExpense()">Add ₹200 Expense</button>
+        <button onclick="checkExpenses()">Check Expenses</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Transactions Test</h2>
+        <button onclick="checkTransactions()">Check Transactions</button>
+        <button onclick="showAllData()">Show All Data</button>
+    </div>
+    
+    <div id="output">Click buttons to test functionality...</div>
+
+    <script src="scripts/dataManager.js"></script>
+    <script>
+        const output = document.getElementById('output');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
+            output.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        function testDataManager() {
+            try {
+                if (window.PocketPalDataManager) {
+                    log('✓ Data Manager loaded successfully', 'success');
+                    log('Available methods: ' + Object.keys(window.PocketPalDataManager).join(', '));
+                } else {
+                    log('✗ Data Manager not found!', 'error');
+                }
+            } catch (error) {
+                log('✗ Error testing data manager: ' + error.message, 'error');
+            }
+        }
+        
+        function clearAllData() {
+            try {
+                window.PocketPalDataManager.clearAllData();
+                log('✓ All data cleared', 'success');
+            } catch (error) {
+                log('✗ Error clearing data: ' + error.message, 'error');
+            }
+        }
+        
+        function testAddMoney() {
+            try {
+                const result = window.PocketPalDataManager.addMoney(1000);
+                if (result) {
+                    log('✓ Added ₹1000 to wallet', 'success');
+                    const balance = window.PocketPalDataManager.getWalletBalance();
+                    log('New wallet balance: ₹' + balance);
+                } else {
+                    log('✗ Failed to add money', 'error');
+                }
+            } catch (error) {
+                log('✗ Error adding money: ' + error.message, 'error');
+            }
+        }
+        
+        function checkWallet() {
+            try {
+                const balance = window.PocketPalDataManager.getWalletBalance();
+                log('Current wallet balance: ₹' + balance);
+            } catch (error) {
+                log('✗ Error checking wallet: ' + error.message, 'error');
+            }
+        }
+        
+        function testAddExpense() {
+            try {
+                const expense = window.PocketPalDataManager.addExpense({
+                    amount: 200,
+                    category: 'food',
+                    description: 'Test lunch expense',
+                    date: new Date().toISOString()
+                });
+                
+                if (expense) {
+                    log('✓ Added expense: ' + expense.description, 'success');
+                    const balance = window.PocketPalDataManager.getWalletBalance();
+                    log('New wallet balance: ₹' + balance);
+                } else {
+                    log('✗ Failed to add expense', 'error');
+                }
+            } catch (error) {
+                log('✗ Error adding expense: ' + error.message, 'error');
+            }
+        }
+        
+        function checkExpenses() {
+            try {
+                const expenses = window.PocketPalDataManager.getExpenses();
+                log('Total expenses: ' + expenses.length);
+                expenses.forEach((exp, index) => {
+                    log(`${index + 1}. ${exp.description} - ₹${exp.amount} (${exp.category})`);
+                });
+            } catch (error) {
+                log('✗ Error checking expenses: ' + error.message, 'error');
+            }
+        }
+        
+        function checkTransactions() {
+            try {
+                const transactions = window.PocketPalDataManager.getTransactions();
+                log('Total transactions: ' + transactions.length);
+                transactions.forEach((trans, index) => {
+                    log(`${index + 1}. [${trans.type.toUpperCase()}] ${trans.description} - ₹${trans.amount}`);
+                });
+            } catch (error) {
+                log('✗ Error checking transactions: ' + error.message, 'error');
+            }
+        }
+        
+        function showAllData() {
+            try {
+                const data = window.PocketPalDataManager.getAllData();
+                log('=== ALL DATA ===');
+                log('Wallet: ₹' + data.wallet);
+                log('Expenses: ' + data.expenses.length);
+                log('Transactions: ' + data.transactions.length);
+                log('Budgets: ' + JSON.stringify(data.budgets));
+                log('Notifications: ' + data.notifications.length);
+                console.log('Full data object:', data);
+            } catch (error) {
+                log('✗ Error showing all data: ' + error.message, 'error');
+            }
+        }
+        
+        // Auto-run initial test
+        setTimeout(() => {
+            testDataManager();
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spending Analysis - PocketPal</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles/style.css">
+    <link rel="stylesheet" href="styles/spending.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Critical button fix */
+        button, .btn {
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            z-index: 999 !important;
+            position: relative !important;
+        }
+        .view-toggle button, .btn-icon {
+            background: #f8f9fa !important;
+            border: 2px solid #007bff !important;
+            color: #007bff !important;
+        }
+        .view-toggle button.active, .btn-icon.active {
+            background: #007bff !important;
+            color: white !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-wallet"></i>
+                <h1>PocketPal</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html"><i class="fas fa-home"></i> Dashboard</a></li>
+                    <li><a href="history.html"><i class="fas fa-history"></i> History</a></li>
+                    <li><a href="spending.html" class="active"><i class="fas fa-chart-line"></i> Spending</a></li>
+                    <li><a href="split.html"><i class="fas fa-users"></i> Split</a></li>
+                </ul>
+            </nav>
+            <div class="user-controls">
+                <a href="notifications.html" class="notification-bell" id="notificationBell">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-count" id="notificationCounter">0</span>
+                </a>
+                <div class="user-profile" id="userProfile">
+                    <span><i class="fas fa-user-circle"></i> Guest</span>
+                </div>
+                <button class="btn btn-primary" id="loginBtn"><i class="fas fa-sign-in-alt"></i> Login</button>
+                <button class="btn btn-secondary" id="logoutBtn" style="display: none;"><i
+                        class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </header>
+
+        <main>
+            <div class="spending-header">
+                <h2 class="page-title"><i class="fas fa-chart-pie"></i> Spending Analysis</h2>
+                <div class="spending-controls">
+                    <div class="view-toggle">
+                        <button class="btn btn-secondary active" id="monthlyView" onclick="switchToMonthly()" style="cursor: pointer;">Monthly</button>
+                        <button class="btn btn-secondary" id="yearlyView" onclick="switchToYearly()" style="cursor: pointer;">Yearly</button>
+                    </div>
+                    <div class="time-selector">
+                        <button class="btn btn-icon" id="prevPeriod" onclick="navigatePrevious()" style="cursor: pointer;"><i class="fas fa-chevron-left"></i></button>
+                        <span id="currentPeriod">September 2025</span>
+                        <button class="btn btn-icon" id="nextPeriod" onclick="navigateNext()" style="cursor: pointer;"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="export-options">
+                        <button class="btn btn-secondary" id="exportData" onclick="showExportModal()" style="cursor: pointer;"><i class="fas fa-file-export"></i>
+                            Export</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="spending-grid">
+                <!-- Main Chart Section -->
+                <div class="card chart-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Spending Overview</h3>
+                        <div class="chart-legend" id="chartLegend"></div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="spendingChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Category Breakdown -->
+                <div class="card categories-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Category Breakdown</h3>
+                        <select id="categoryFilter" class="form-control">
+                            <option value="all">All Categories</option>
+                            <option value="food">Food & Dining</option>
+                            <option value="travel">Travel & Transport</option>
+                            <option value="entertainment">Entertainment</option>
+                            <option value="study">Study Materials</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="categories-list" id="categoriesList">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Spending Trends -->
+                <div class="card trends-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Spending Trends</h3>
+                        <div class="trend-buttons">
+                            <button class="btn btn-icon active" data-trend="3m" onclick="setTrend('3m')" style="cursor: pointer;"><small>3M</small></button>
+                            <button class="btn btn-icon" data-trend="6m" onclick="setTrend('6m')" style="cursor: pointer;"><small>6M</small></button>
+                            <button class="btn btn-icon" data-trend="1y" onclick="setTrend('1y')" style="cursor: pointer;"><small>1Y</small></button>
+                        </div>
+                    </div>
+                    <div class="trend-container">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Recent Large Expenses -->
+                <div class="card large-expenses-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Recent Large Expenses</h3>
+                        <div class="threshold-selector">
+                            <label>Over:</label>
+                            <select id="thresholdFilter" class="form-control">
+                                <option value="500">₹500</option>
+                                <option value="1000">₹1000</option>
+                                <option value="2000">₹2000</option>
+                                <option value="5000">₹5000</option>
+                            </select>
+                        </div>
+                    </div>
+                    <ul class="expense-list" id="largeExpensesList">
+                        <!-- Will be populated by JavaScript -->
+                    </ul>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>PocketPal - Smart Virtual Wallet for Students</p>
+            <p>&copy; 2025 PocketPal Inc. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- Export Modal -->
+    <div class="modal" id="exportModal">
+        <div class="modal-content">
+            <h3>Export Spending Data</h3>
+            <div class="export-options-list">
+                <button class="btn btn-block export-option" onclick="exportData('csv')" style="cursor: pointer;">
+                    <i class="fas fa-file-csv"></i> CSV Format
+                </button>
+                <button class="btn btn-block export-option" onclick="exportData('pdf')" style="cursor: pointer;">
+                    <i class="fas fa-file-pdf"></i> PDF Report
+                </button>
+                <button class="btn btn-block export-option" onclick="exportData('print')" style="cursor: pointer;">
+                    <i class="fas fa-print"></i> Print Summary
+                </button>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="cancelExport" onclick="hideExportModal()" style="cursor: pointer;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="scripts/dataManager.js"></script>
+    <script src="scripts/script.js"></script>
+    <script src="scripts/spending.js"></script>
+    
+    <!-- Direct Button Handlers -->
+    <script>
+        // Current view state
+        let currentView = 'monthly';
+        let currentDate = new Date(2025, 8); // September 2025
+        
+        function switchToMonthly() {
+            console.log('Switched to monthly view');
+            currentView = 'monthly';
+            document.getElementById('monthlyView').classList.add('active');
+            document.getElementById('yearlyView').classList.remove('active');
+            updatePeriodDisplay();
+        }
+        
+        function switchToYearly() {
+            console.log('Switched to yearly view');
+            currentView = 'yearly';
+            document.getElementById('yearlyView').classList.add('active');
+            document.getElementById('monthlyView').classList.remove('active');
+            updatePeriodDisplay();
+        }
+        
+        function navigatePrevious() {
+            if (currentView === 'monthly') {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                console.log('Previous month: ' + getMonthYear());
+            } else {
+                currentDate.setFullYear(currentDate.getFullYear() - 1);
+                console.log('Previous year: ' + currentDate.getFullYear());
+            }
+            updatePeriodDisplay();
+        }
+        
+        function navigateNext() {
+            if (currentView === 'monthly') {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                console.log('Next month: ' + getMonthYear());
+            } else {
+                currentDate.setFullYear(currentDate.getFullYear() + 1);
+                console.log('Next year: ' + currentDate.getFullYear());
+            }
+            updatePeriodDisplay();
+        }
+        
+        function setTrend(period) {
+            console.log('Trend set to: ' + period);
+            document.querySelectorAll('[data-trend]').forEach(btn => btn.classList.remove('active'));
+            document.querySelector('[data-trend="' + period + '"]').classList.add('active');
+        }
+        
+        function updatePeriodDisplay() {
+            const periodElement = document.getElementById('currentPeriod');
+            if (currentView === 'monthly') {
+                periodElement.textContent = getMonthYear();
+            } else {
+                periodElement.textContent = currentDate.getFullYear().toString();
+            }
+        }
+        
+        function getMonthYear() {
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            return monthNames[currentDate.getMonth()] + ' ' + currentDate.getFullYear();
+        }
+        
+        // Export modal functions
+        function showExportModal() {
+            console.log('Opening export modal');
+            document.getElementById('exportModal').style.display = 'flex';
+        }
+        
+        function hideExportModal() {
+            console.log('Closing export modal');
+            document.getElementById('exportModal').style.display = 'none';
+        }
+        
+        function exportData(format) {
+            console.log('Exporting as: ' + format);
+            switch(format) {
+                case 'csv':
+                    alert('CSV export feature - would download spending data as CSV file');
+                    break;
+                case 'pdf':
+                    alert('PDF export feature - would generate PDF report');
+                    break;
+                case 'print':
+                    window.print();
+                    break;
+            }
+            hideExportModal();
+        }
+        
+        // Close modal when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'exportModal') {
+                hideExportModal();
+            }
+        });
+        
+        console.log('Spending navigation loaded');
+    </script>
+</body>
+
+</html>

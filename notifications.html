@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - PocketPal</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Critical button fix */
+        button, .btn {
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            z-index: 999 !important;
+            position: relative !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-wallet"></i>
+                <h1>PocketPal</h1>
+            </div>
+            <a href="index.html" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </header>
+
+        <main>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-bell"></i> Notifications</h3>
+                    <div class="notification-actions">
+                        <button class="btn btn-secondary" id="markAllRead" onclick="markAllAsRead()" style="cursor: pointer;">
+                            <i class="fas fa-check-circle"></i> Mark All Read
+                        </button>
+                        <button class="btn btn-danger" id="clearAll" onclick="clearAllNotifications()" style="cursor: pointer;">
+                            <i class="fas fa-trash-alt"></i> Clear All
+                        </button>
+                        <button class="btn btn-outline" id="markSelected" style="display: none;">
+                            <i class="fas fa-check"></i> Mark Selected Read
+                        </button>
+                        <button class="btn btn-outline" id="deleteSelected" style="display: none;">
+                            <i class="fas fa-trash"></i> Delete Selected
+                        </button>
+                    </div>
+                </div>
+
+                <div class="notification-filters">
+                    <div class="filter-group">
+                        <label for="typeFilter">Filter by Type:</label>
+                        <select id="typeFilter">
+                            <option value="all">All Types</option>
+                            <option value="info">Info</option>
+                            <option value="success">Success</option>
+                            <option value="warning">Warning</option>
+                            <option value="danger">Danger</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="statusFilter">Filter by Status:</label>
+                        <select id="statusFilter">
+                            <option value="all">All</option>
+                            <option value="unread">Unread Only</option>
+                            <option value="read">Read Only</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>
+                            <input type="checkbox" id="selectAll"> Select All
+                        </label>
+                    </div>
+                </div>
+
+                <div class="notification-list" id="notificationList">
+                    <!-- Notifications will be loaded dynamically here -->
+                    <div class="notification-loading">
+                        <p><i class="fas fa-spinner fa-spin"></i> Loading notifications...</p>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="paginationContainer" style="display: none;">
+                    <button class="btn btn-outline" id="prevPage" onclick="previousNotificationPage()" style="cursor: pointer;">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    <span id="pageInfo">Page 1 of 1</span>
+                    <button class="btn btn-outline" id="nextPage" onclick="nextNotificationPage()" style="cursor: pointer;">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>PocketPal - Smart Virtual Wallet for Students</p>
+            <p>&copy; 2025 PocketPal Inc. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <style>
+        .notification-filters {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-group label {
+            font-size: 0.9rem;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        .filter-group select {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .notification-item {
+            position: relative;
+            padding: 1rem;
+            border-left: 4px solid #007bff;
+            background: white;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .notification-item.unread {
+            background: #f8f9ff;
+            border-left-color: #007bff;
+        }
+
+        .notification-item.success {
+            border-left-color: #28a745;
+        }
+
+        .notification-item.warning {
+            border-left-color: #ffc107;
+        }
+
+        .notification-item.danger {
+            border-left-color: #dc3545;
+        }
+
+        .notification-item.info {
+            border-left-color: #17a2b8;
+        }
+
+        .notification-item.unread.success {
+            background: #d4edda;
+        }
+
+        .notification-item.unread.warning {
+            background: #fff3cd;
+        }
+
+        .notification-item.unread.danger {
+            background: #f8d7da;
+        }
+
+        .notification-item.unread.info {
+            background: #d1ecf1;
+        }
+
+        .notification-item.selected {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+
+        .notification-checkbox {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+        }
+
+        .notification-message {
+            margin: 0 2rem 0.5rem 0;
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+
+        .notification-date {
+            color: #666;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .notification-status {
+            position: absolute;
+            top: 1rem;
+            right: 3rem;
+            font-size: 0.8rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .notification-status.unread {
+            background: #007bff;
+            color: white;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-top: 1px solid #eee;
+            margin-top: 1rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #ddd;
+        }
+
+        @media (max-width: 768px) {
+            .notification-filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-group {
+                justify-content: space-between;
+            }
+
+            .notification-actions {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+
+    <script>
+        // Notification page - Frontend Only Version with localStorage
+        const STORAGE_KEYS = {
+            NOTIFICATIONS: 'pocketpal_notifications'
+        };
+
+        const notificationState = {
+            notifications: [],
+            filteredNotifications: [],
+            selectedNotifications: new Set(),
+            currentPage: 1,
+            notificationsPerPage: 10
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeNotificationPage();
+        });
+
+        function initializeNotificationPage() {
+            try {
+                loadNotificationsFromStorage();
+                setupEventListeners();
+                renderNotifications();
+                updatePagination();
+            } catch (error) {
+                console.error('Failed to load notifications:', error);
+                showError('Failed to load notifications');
+            }
+        }
+
+        function loadNotificationsFromStorage() {
+            try {
+                const storedNotifications = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+                notificationState.notifications = storedNotifications ? JSON.parse(storedNotifications) : [];
+                notificationState.filteredNotifications = [...notificationState.notifications];
+            } catch (error) {
+                console.error('Failed to load notifications from storage:', error);
+                notificationState.notifications = [];
+                notificationState.filteredNotifications = [];
+            }
+        }
+
+        function saveNotificationsToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notificationState.notifications));
+            } catch (error) {
+                console.error('Failed to save notifications to storage:', error);
+            }
+        }
+
+        // API functions removed - using localStorage only
+
+        function setupEventListeners() {
+            const markAllReadBtn = document.getElementById('markAllRead');
+            const clearAllBtn = document.getElementById('clearAll');
+            const markSelectedBtn = document.getElementById('markSelected');
+            const deleteSelectedBtn = document.getElementById('deleteSelected');
+            const selectAllCheckbox = document.getElementById('selectAll');
+            const typeFilter = document.getElementById('typeFilter');
+            const statusFilter = document.getElementById('statusFilter');
+            const prevPageBtn = document.getElementById('prevPage');
+            const nextPageBtn = document.getElementById('nextPage');
+
+            if (markAllReadBtn) {
+                markAllReadBtn.addEventListener('click', markAllAsRead);
+            }
+
+            if (clearAllBtn) {
+                clearAllBtn.addEventListener('click', clearAllNotifications);
+            }
+
+            if (markSelectedBtn) {
+                markSelectedBtn.addEventListener('click', markSelectedAsRead);
+            }
+
+            if (deleteSelectedBtn) {
+                deleteSelectedBtn.addEventListener('click', deleteSelectedNotifications);
+            }
+
+            if (selectAllCheckbox) {
+                selectAllCheckbox.addEventListener('change', toggleSelectAll);
+            }
+
+            if (typeFilter) {
+                typeFilter.addEventListener('change', applyFilters);
+            }
+
+            if (statusFilter) {
+                statusFilter.addEventListener('change', applyFilters);
+            }
+
+            if (prevPageBtn) {
+                prevPageBtn.addEventListener('click', () => {
+                    if (notificationState.currentPage > 1) {
+                        notificationState.currentPage--;
+                        renderNotifications();
+                        updatePagination();
+                    }
+                });
+            }
+
+            if (nextPageBtn) {
+                nextPageBtn.addEventListener('click', () => {
+                    const totalPages = Math.ceil(notificationState.filteredNotifications.length / notificationState.notificationsPerPage);
+                    if (notificationState.currentPage < totalPages) {
+                        notificationState.currentPage++;
+                        renderNotifications();
+                        updatePagination();
+                    }
+                });
+            }
+        }
+
+        function renderNotifications() {
+            const notificationList = document.getElementById('notificationList');
+
+            if (notificationState.filteredNotifications.length === 0) {
+                notificationList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-bell-slash"></i>
+                        <p>No notifications found</p>
+                        <p>Check back later for updates!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const startIndex = (notificationState.currentPage - 1) * notificationState.notificationsPerPage;
+            const endIndex = startIndex + notificationState.notificationsPerPage;
+            const pageNotifications = notificationState.filteredNotifications.slice(startIndex, endIndex);
+
+            notificationList.innerHTML = pageNotifications.map((notification, index) => {
+                const globalIndex = startIndex + index;
+                const isSelected = notificationState.selectedNotifications.has(globalIndex);
+
+                return `
+                    <div class="notification-item ${notification.type} ${!notification.read ? 'unread' : ''} ${isSelected ? 'selected' : ''}" 
+                         data-index="${globalIndex}">
+                        <input type="checkbox" class="notification-checkbox" 
+                               ${isSelected ? 'checked' : ''} 
+                               data-index="${globalIndex}">
+                        <div class="notification-status ${!notification.read ? 'unread' : ''}">
+                            ${!notification.read ? 'New' : 'Read'}
+                        </div>
+                        <p class="notification-message">${escapeHTML(notification.message)}</p>
+                        <small class="notification-date">
+                            <i class="far fa-clock"></i> ${formatNotificationDate(notification.date)}
+                        </small>
+                    </div>
+                `;
+            }).join('');
+
+            // Add event listeners for checkboxes
+            document.querySelectorAll('.notification-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function () {
+                    const index = parseInt(this.dataset.index);
+                    if (this.checked) {
+                        notificationState.selectedNotifications.add(index);
+                    } else {
+                        notificationState.selectedNotifications.delete(index);
+                    }
+                    updateNotificationItem(index);
+                    updateSelectionButtons();
+                });
+            });
+
+            updateSelectionButtons();
+        }
+
+        function updateNotificationItem(index) {
+            const notificationItem = document.querySelector(`[data-index="${index}"]`);
+            if (notificationItem) {
+                const isSelected = notificationState.selectedNotifications.has(index);
+                notificationItem.classList.toggle('selected', isSelected);
+            }
+        }
+
+        function updateSelectionButtons() {
+            const hasSelected = notificationState.selectedNotifications.size > 0;
+            const markSelectedBtn = document.getElementById('markSelected');
+            const deleteSelectedBtn = document.getElementById('deleteSelected');
+
+            if (markSelectedBtn && deleteSelectedBtn) {
+                markSelectedBtn.style.display = hasSelected ? 'inline-block' : 'none';
+                deleteSelectedBtn.style.display = hasSelected ? 'inline-block' : 'none';
+            }
+
+            // Update select all checkbox state
+            const selectAllCheckbox = document.getElementById('selectAll');
+            if (selectAllCheckbox) {
+                const visibleCount = Math.min(notificationState.notificationsPerPage,
+                    notificationState.filteredNotifications.length - (notificationState.currentPage - 1) * notificationState.notificationsPerPage);
+                const selectedInPage = Array.from(notificationState.selectedNotifications).filter(index => {
+                    const pageStart = (notificationState.currentPage - 1) * notificationState.notificationsPerPage;
+                    const pageEnd = pageStart + visibleCount;
+                    return index >= pageStart && index < pageEnd;
+                }).length;
+
+                selectAllCheckbox.checked = selectedInPage === visibleCount && visibleCount > 0;
+                selectAllCheckbox.indeterminate = selectedInPage > 0 && selectedInPage < visibleCount;
+            }
+        }
+
+        function toggleSelectAll(event) {
+            const isChecked = event.target.checked;
+            const startIndex = (notificationState.currentPage - 1) * notificationState.notificationsPerPage;
+            const endIndex = Math.min(startIndex + notificationState.notificationsPerPage, notificationState.filteredNotifications.length);
+
+            for (let i = startIndex; i < endIndex; i++) {
+                if (isChecked) {
+                    notificationState.selectedNotifications.add(i);
+                } else {
+                    notificationState.selectedNotifications.delete(i);
+                }
+            }
+
+            renderNotifications();
+        }
+
+        function applyFilters() {
+            const typeFilter = document.getElementById('typeFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            notificationState.filteredNotifications = notificationState.notifications.filter(notification => {
+                // Type filter
+                if (typeFilter !== 'all' && notification.type !== typeFilter) {
+                    return false;
+                }
+
+                // Status filter
+                if (statusFilter === 'unread' && notification.read) {
+                    return false;
+                }
+                if (statusFilter === 'read' && !notification.read) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            notificationState.currentPage = 1;
+            notificationState.selectedNotifications.clear();
+            renderNotifications();
+            updatePagination();
+        }
+
+        function updatePagination() {
+            const totalNotifications = notificationState.filteredNotifications.length;
+            const totalPages = Math.ceil(totalNotifications / notificationState.notificationsPerPage);
+
+            const paginationContainer = document.getElementById('paginationContainer');
+            const pageInfo = document.getElementById('pageInfo');
+            const prevPageBtn = document.getElementById('prevPage');
+            const nextPageBtn = document.getElementById('nextPage');
+
+            if (totalPages > 1) {
+                paginationContainer.style.display = 'flex';
+                pageInfo.textContent = `Page ${notificationState.currentPage} of ${totalPages}`;
+                prevPageBtn.disabled = notificationState.currentPage <= 1;
+                nextPageBtn.disabled = notificationState.currentPage >= totalPages;
+            } else {
+                paginationContainer.style.display = 'none';
+            }
+        }
+
+        function markAllAsRead() {
+            try {
+                // Update local state
+                notificationState.notifications.forEach(n => n.read = true);
+                notificationState.filteredNotifications.forEach(n => n.read = true);
+                
+                // Save to localStorage
+                saveNotificationsToStorage();
+
+                renderNotifications();
+                updateMainPageNotificationCounter();
+                showToast('All notifications marked as read', 'success');
+            } catch (error) {
+                console.error('Failed to mark all as read:', error);
+                showToast('Failed to mark notifications as read', 'error');
+            }
+        }
+
+        function markSelectedAsRead() {
+            if (notificationState.selectedNotifications.size === 0) return;
+
+            try {
+                const indices = Array.from(notificationState.selectedNotifications);
+
+                // Update local state
+                indices.forEach(index => {
+                    if (notificationState.notifications[index]) {
+                        notificationState.notifications[index].read = true;
+                    }
+                    if (notificationState.filteredNotifications[index]) {
+                        notificationState.filteredNotifications[index].read = true;
+                    }
+                });
+                
+                // Save to localStorage
+                saveNotificationsToStorage();
+
+                notificationState.selectedNotifications.clear();
+                renderNotifications();
+                updateMainPageNotificationCounter();
+                showToast('Selected notifications marked as read', 'success');
+            } catch (error) {
+                console.error('Failed to mark selected as read:', error);
+                showToast('Failed to mark notifications as read', 'error');
+            }
+        }
+
+        function clearAllNotifications() {
+            if (!confirm('Are you sure you want to delete all notifications? This cannot be undone.')) {
+                return;
+            }
+
+            try {
+                // Clear local state
+                notificationState.notifications = [];
+                notificationState.filteredNotifications = [];
+                notificationState.selectedNotifications.clear();
+                
+                // Save to localStorage
+                saveNotificationsToStorage();
+
+                renderNotifications();
+                updatePagination();
+                updateMainPageNotificationCounter();
+                showToast('All notifications cleared', 'info');
+            } catch (error) {
+                console.error('Failed to clear notifications:', error);
+                showToast('Failed to clear notifications', 'error');
+            }
+        }
+
+        function deleteSelectedNotifications() {
+            if (notificationState.selectedNotifications.size === 0) return;
+
+            if (!confirm('Are you sure you want to delete the selected notifications? This cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const indices = Array.from(notificationState.selectedNotifications);
+
+                // Update local state by removing deleted notifications
+                indices.sort((a, b) => b - a); // Sort in descending order to avoid index shifting
+                indices.forEach(index => {
+                    notificationState.notifications.splice(index, 1);
+                    notificationState.filteredNotifications.splice(index, 1);
+                });
+                
+                // Save to localStorage
+                saveNotificationsToStorage();
+
+                notificationState.selectedNotifications.clear();
+                notificationState.currentPage = Math.max(1,
+                    Math.min(notificationState.currentPage,
+                        Math.ceil(notificationState.filteredNotifications.length / notificationState.notificationsPerPage)));
+
+                renderNotifications();
+                updatePagination();
+                updateMainPageNotificationCounter();
+                showToast('Selected notifications deleted', 'info');
+            } catch (error) {
+                console.error('Failed to delete notifications:', error);
+                showToast('Failed to delete notifications', 'error');
+            }
+        }
+
+        // markNotificationsAsRead function removed - not needed for localStorage version
+
+        function updateMainPageNotificationCounter() {
+            // Notify main page to update notification counter
+            if (window.opener) {
+                window.opener.postMessage({ type: 'UPDATE_NOTIFICATIONS' }, '*');
+            }
+
+            // Also update parent page if opened in same tab
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'UPDATE_NOTIFICATIONS' }, '*');
+            }
+        }
+
+        // Authentication functions removed - no login required in localStorage version
+
+        function showError(message) {
+            const notificationList = document.getElementById('notificationList');
+            notificationList.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-triangle" style="color: #dc3545;"></i>
+                    <p style="color: #dc3545;">Error Loading Notifications</p>
+                    <p>${escapeHTML(message)}</p>
+                    <div style="margin-top: 1rem;">
+                        <button onclick="location.reload()" class="btn btn-primary">Try Again</button>
+                        <a href="index.html" class="btn btn-secondary" style="margin-left: 0.5rem;">Go Back</a>
+                    </div>
+                </div>
+            `;
+        }
+
+        function escapeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str || '';
+            return div.innerHTML;
+        }
+
+        function formatNotificationDate(dateString) {
+            try {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+                
+                if (diffMins < 1) {
+                    return 'Just now';
+                } else if (diffMins < 60) {
+                    return `${diffMins}m ago`;
+                } else if (diffHours < 24) {
+                    return `${diffHours}h ago`;
+                } else if (diffDays < 7) {
+                    return `${diffDays}d ago`;
+                } else {
+                    return date.toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+                    });
+                }
+            } catch (error) {
+                return 'Unknown';
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <div class="toast-message">${escapeHTML(message)}</div>
+                <button class="toast-close" aria-label="Close">&times;</button>
+            `;
+
+            // Add toast styles
+            if (!document.querySelector('#toast-styles')) {
+                const style = document.createElement('style');
+                style.id = 'toast-styles';
+                style.textContent = `
+                    .toast {
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: white;
+                        color: #333;
+                        padding: 12px 16px;
+                        border-radius: 8px;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                        z-index: 10000;
+                        min-width: 300px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        animation: slideIn 0.3s ease;
+                        border-left: 4px solid #007bff;
+                    }
+                    .toast-success { border-left-color: #28a745; background: #d4edda; color: #155724; }
+                    .toast-error { border-left-color: #dc3545; background: #f8d7da; color: #721c24; }
+                    .toast-warning { border-left-color: #ffc107; background: #fff3cd; color: #856404; }
+                    .toast-info { border-left-color: #17a2b8; background: #d1ecf1; color: #0c5460; }
+                    .toast.fade-out { animation: slideOut 0.3s ease; }
+                    .toast-close {
+                        background: none;
+                        border: none;
+                        font-size: 18px;
+                        cursor: pointer;
+                        margin-left: 12px;
+                        opacity: 0.7;
+                    }
+                    .toast-close:hover { opacity: 1; }
+                    @keyframes slideIn {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                    @keyframes slideOut {
+                        from { transform: translateX(0); opacity: 1; }
+                        to { transform: translateX(100%); opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            document.body.appendChild(toast);
+
+            const close = () => {
+                toast.classList.add('fade-out');
+                setTimeout(() => toast.remove(), 300);
+            };
+
+            toast.querySelector('.toast-close').addEventListener('click', close);
+            setTimeout(close, 5000);
+        }
+        
+        // Direct button handlers for notifications
+        function markAllAsRead() {
+            console.log('Marking all notifications as read');
+            notificationState.notifications.forEach(notification => {
+                notification.read = true;
+            });
+            saveNotificationsToStorage();
+            renderNotifications();
+            updateMainPageNotificationCounter();
+            showToast('All notifications marked as read', 'success');
+        }
+        
+        function clearAllNotifications() {
+            if (confirm('Are you sure you want to clear all notifications? This cannot be undone.')) {
+                console.log('Clearing all notifications');
+                notificationState.notifications = [];
+                notificationState.filteredNotifications = [];
+                notificationState.selectedNotifications.clear();
+                saveNotificationsToStorage();
+                renderNotifications();
+                updateMainPageNotificationCounter();
+                showToast('All notifications cleared', 'info');
+            }
+        }
+        
+        function previousNotificationPage() {
+            if (notificationState.currentPage > 1) {
+                notificationState.currentPage--;
+                renderNotifications();
+                updatePagination();
+                console.log('Previous notification page: ' + notificationState.currentPage);
+            }
+        }
+        
+        function nextNotificationPage() {
+            const maxPages = Math.ceil(notificationState.filteredNotifications.length / notificationState.notificationsPerPage);
+            if (notificationState.currentPage < maxPages) {
+                notificationState.currentPage++;
+                renderNotifications();
+                updatePagination();
+                console.log('Next notification page: ' + notificationState.currentPage);
+            }
+        }
+    </script>
+</body>
+
+</html>
