@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import Spinner from '../components/Spinner';
-import BottomNav from '../components/BottomNav';
 import TopBar from '../components/TopBar';
 
 const inr = (n) => Math.round(Math.abs(n)).toLocaleString('en-IN');
@@ -261,8 +260,6 @@ export default function History() {
         )}
 
       </div>
-
-      <BottomNav />
     </div>
   );
 }

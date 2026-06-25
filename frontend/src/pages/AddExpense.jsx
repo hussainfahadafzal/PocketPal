@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import Button from '../components/Button';
 import Card from '../components/Card';
-import BottomNav from '../components/BottomNav';
 
 const MERCHANT_VPA = 'merchant@upi';
 
@@ -102,7 +101,6 @@ function ConfirmScreen({ amount, savedExpense, onDone }) {
         </div>
       </div>
 
-      <BottomNav />
     </div>
   );
 }
@@ -294,7 +292,6 @@ export default function AddExpense() {
         </Card>
       </div>
 
-      <BottomNav />
     </div>
   );
 }

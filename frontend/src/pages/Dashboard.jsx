@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import Spinner from '../components/Spinner';
-import BottomNav from '../components/BottomNav';
 import TopBar from '../components/TopBar';
 import Toast from '../components/Toast';
 import StreakCalendar from '../components/StreakCalendar';
@@ -397,7 +396,6 @@ export default function Dashboard() {
       </motion.div>
 
       <AddFAB onClick={() => navigate('/add')} />
-      <BottomNav />
     </div>
   );
 }

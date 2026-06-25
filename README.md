@@ -31,9 +31,9 @@ The streak calendar, savings jar, and score came later. Turns out making saving 
 
 ## Screenshots
 
-| Dashboard | Streak Calendar | PocketScore |
+| Dashboard | Savings Jar | Streak Calendar |
 |:--:|:--:|:--:|
-| <img src="screenshots/dashboard.png" width="220"/> | <img src="screenshots/streak.png" width="220"/> | <img src="screenshots/score.png" width="220"/> |
+| <img src="screenshots/dashboard.png" width="220"/> | <img src="screenshots/jar.png" width="220"/> | <img src="screenshots/streak.png" width="220"/> |
 
 | Budgets | Spending Analysis | Add Expense |
 |:--:|:--:|:--:|
@@ -51,35 +51,47 @@ The core of the app. Every morning it calculates:
 Daily Limit = (Balance − Savings Goal) ÷ Days Left in Cycle
 ```
 
-Budget cycles aren't tied to a calendar month — you set a refill date or just say "make this last 30 days." Works for students who get pocket money at random, freelancers waiting on invoices, anyone with irregular income.
+Budget cycles aren't tied to a calendar month — you set a refill date or just say "make this last 30 days." Works for students who get pocket money at random, freelancers waiting on invoices, anyone with irregular income. When your money refills, you reset the cycle with one tap.
 
 **Streak Calendar**
 
 A heatmap of every day you stayed under your limit. Green day = under budget, red day = over. The streak counter animates when it goes up. Missing a day resets it to zero. It sounds harsh but that's the point — you actually stop and think before the third chai.
 
-**Round-up Saving**
+**Savings Jar**
 
-Every time you log an expense, it rounds up to the nearest ₹10 and puts the difference in a virtual Savings Jar. Log ₹47 → ₹3 goes to the jar. It's small enough that you don't feel it, but it adds up. Keep a 7-day streak and every round-up doubles.
+Has its own page. Every expense you log rounds up to the nearest ₹10 and the spare lands in the jar automatically — no action needed. Log ₹47, ₹3 goes to the jar. Small enough that you don't feel it, meaningful enough that it adds up over a month.
 
-**Savings Jar + Goals**
+Set a named goal (Goa trip, new phone, whatever) and watch the progress bar fill. Keep a 7-day streak and every round-up doubles.
 
-Name a goal, set a target, watch the bar fill. The jar total and progress animate on load — a small detail that makes it feel real.
+**Budgets**
 
-**PocketScore**
-
-A 0–850 score based on how well you're sticking to your budget, building your streak, hitting your savings goal, and staying within category caps. Comes with 2–3 specific tips to improve it. Display-only — no connection to credit scores or lending.
+Category management. Create spending categories, set a monthly cap per category, and see a progress bar showing how much of that cap you've used. Goes red when you're over. That's it — clean and focused.
 
 **Pal Nudges**
 
-Pattern-based observations from your spending: when you tend to overspend, which categories are eating your budget, whether you're on track. More useful than a generic "you spent ₹200 on food" notification.
+Pattern-based observations from your actual spending. When you tend to overspend, which categories are eating your budget, whether you're on track. Surfaces in the Analysis tab as a Financial Personality card.
 
 **Spending Analysis**
 
-Category breakdown (donut chart) and daily spend trend (bar chart), for any month you pick. Simple, fast, no clutter.
+Category breakdown (donut chart) and daily spend trend (bar chart), for any month you pick.
 
 **PWA**
 
-Add to Home Screen on Android or iOS. Opens full-screen with no browser chrome. No app store, no waiting for review.
+Add to Home Screen on Android or iOS. Opens full-screen, no browser chrome, no app store.
+
+---
+
+## App Structure
+
+Five tabs in the bottom nav:
+
+| Tab | What's there |
+|---|---|
+| **Dashboard** | Daily spend limit, streak badge, Pal nudge, quick stats, streak calendar, savings jar summary |
+| **History** | Full expense log, filterable by month and category |
+| **Budgets** | Create and manage spending categories with optional caps |
+| **Jar** | Savings jar total, goal progress, round-up toggle, set/edit goal |
+| **Analysis** | Donut chart by category + daily bar chart, per month |
 
 ---
 
@@ -119,7 +131,7 @@ JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=10080
 ```
 
-To generate a secret key:
+Generate a secret key:
 ```bash
 python -c "import secrets; print(secrets.token_hex(32))"
 ```
@@ -167,13 +179,12 @@ Set `DATABASE_URL`, `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINU
 
 The MVP is live. Here's what comes next:
 
-- **Phase 2** — social layer: anonymous savings feed, squad challenges, shareable score cards, push notifications
+- **Phase 2** — social layer: anonymous savings feed, squad challenges, shareable streak cards, push notifications
 - **Phase 3** — intelligence: ML-based spend forecasting, smarter Pal nudges, bank statement import
-- **Phase 4** — credit: PocketScore v2 as a real financial reputation layer, micro-lending through NBFC partners
+- **Phase 4** — credit: PocketScore as a real financial reputation layer, micro-lending through NBFC partners
 
 ---
 
 ## About
 
 Built by **Fahad Afzal Hussain** — Founder & CEO, PocketPal.
-

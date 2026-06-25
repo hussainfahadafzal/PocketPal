@@ -6,7 +6,6 @@ import {
 import client from '../api/client';
 import Card from '../components/Card';
 import Spinner from '../components/Spinner';
-import BottomNav from '../components/BottomNav';
 import TopBar from '../components/TopBar';
 
 const inr = (n) => Math.round(Math.abs(n)).toLocaleString('en-IN');
@@ -297,7 +296,6 @@ export default function Analysis() {
           </>
         )}
       </div>
-      <BottomNav />
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import client from '../api/client';
-import BottomNav from '../components/BottomNav';
 import TopBar from '../components/TopBar';
 import Spinner from '../components/Spinner';
 import { useCountUp } from '../hooks/useCountUp';
@@ -312,8 +311,6 @@ export default function Score() {
         </motion.div>
 
       </motion.div>
-
-      <BottomNav />
     </div>
   );
 }

@@ -7,7 +7,6 @@ import Button from '../components/Button';
 import Card from '../components/Card';
 import Input from '../components/Input';
 
-// Minimum selectable date for the date picker (tomorrow)
 function tomorrowISO() {
   const d = new Date();
   d.setDate(d.getDate() + 1);
@@ -21,9 +20,10 @@ function fmtDate(isoStr) {
 }
 
 function computedEndFromDays(days) {
-  if (!days || isNaN(days) || days < 1) return null;
+  const n = parseInt(days, 10);
+  if (!days || isNaN(n) || n < 1) return null;
   const d = new Date();
-  d.setDate(d.getDate() + parseInt(days, 10));
+  d.setDate(d.getDate() + n);
   return d.toISOString().split('T')[0];
 }
 
@@ -34,7 +34,7 @@ export default function Onboarding() {
   const [balance, setBalance]     = useState('');
   const [goal, setGoal]           = useState('');
   const [goalName, setGoalName]   = useState('');
-  const [cycleMode, setCycleMode] = useState('days');   // 'days' | 'date'
+  const [cycleMode, setCycleMode] = useState('days');
   const [cycleDays, setCycleDays] = useState('30');
   const [cycleDate, setCycleDate] = useState('');
   const [errors, setErrors]       = useState({});
@@ -104,7 +104,7 @@ export default function Onboarding() {
         <Card>
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
 
-            {/* ── Balance ── */}
+            {/* Balance */}
             <div>
               <Input
                 label="How much do you have?"
@@ -120,11 +120,13 @@ export default function Onboarding() {
               <p className="text-muted text-xs mt-1.5">Total money you have right now</p>
             </div>
 
-            {/* ── Cycle mode ── */}
+            {/* Cycle mode */}
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted mb-2">
                 Budget cycle
               </p>
+
+              {/* Mode toggle */}
               <div
                 className="flex rounded-xl overflow-hidden mb-3"
                 style={{ border: '1px solid rgba(30,45,78,0.7)' }}
@@ -189,7 +191,7 @@ export default function Onboarding() {
               )}
             </div>
 
-            {/* ── Savings goal ── */}
+            {/* Savings goal */}
             <div>
               <Input
                 label="Savings goal (optional)"

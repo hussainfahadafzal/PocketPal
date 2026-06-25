@@ -1,6 +1,7 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import InstallBanner from './components/InstallBanner';
+import BottomNav from './components/BottomNav';
 import Spinner from './components/Spinner';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -11,6 +12,7 @@ import History from './pages/History';
 import Budgets from './pages/Budgets';
 import Analysis from './pages/Analysis';
 import Score from './pages/Score';
+import Jar from './pages/Jar';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -27,7 +29,12 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+const NO_NAV = ['/login', '/register', '/onboarding', '/add'];
+
 export default function App() {
+  const location = useLocation();
+  const showNav = !NO_NAV.includes(location.pathname);
+
   return (
     <>
     <Routes>
@@ -89,9 +96,18 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/jar"
+        element={
+          <ProtectedRoute>
+            <Jar />
+          </ProtectedRoute>
+        }
+      />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
     <InstallBanner />
+    {showNav && <BottomNav />}
     </>
   );
 }
