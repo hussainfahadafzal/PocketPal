@@ -26,15 +26,16 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-bg flex items-center justify-center p-4">
+    <div className="min-h-screen bg-bg flex items-center justify-center p-5 page-enter">
       <div className="w-full max-w-sm">
+
         <div className="mb-8 text-center">
           <h1 className="font-heading text-4xl font-bold text-text tracking-tight">PocketPal</h1>
           <p className="text-muted text-sm mt-2">Your student finance companion</p>
         </div>
 
         <Card>
-          <h2 className="font-heading text-xl font-semibold text-text mb-6">Welcome back</h2>
+          <h2 className="font-heading text-lg font-semibold text-text mb-5">Welcome back</h2>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <Input
@@ -60,18 +61,19 @@ export default function Login() {
               <p className="text-danger text-xs text-center">{error}</p>
             )}
 
-            <Button type="submit" loading={loading} className="mt-2">
+            <Button type="submit" loading={loading} className="mt-1">
               Sign in
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted mt-5">
             No account?{' '}
-            <Link to="/register" className="text-primary hover:underline font-medium">
+            <Link to="/register" className="text-primary hover:underline underline-offset-2 font-medium transition-colors">
               Create one
             </Link>
           </p>
         </Card>
+
       </div>
     </div>
   );

@@ -41,22 +41,30 @@ export default function Onboarding() {
     try {
       await client.post('/wallet', {
         monthly_balance: parseFloat(form.monthly_balance),
-        savings_goal: parseFloat(form.savings_goal) || 0,
-        goal_name: form.goal_name.trim() || null,
+        savings_goal:    parseFloat(form.savings_goal) || 0,
+        goal_name:       form.goal_name.trim() || null,
       });
       navigate('/dashboard');
     } catch (err) {
-      setErrors({ api: err.response?.data?.detail || 'Could not save wallet. Try again.' });
+      setErrors({ api: err.response?.data?.detail || 'Could not save. Try again.' });
     } finally {
       setLoading(false);
     }
   };
 
+  const firstName = user?.name?.split(' ')[0] || 'there';
+
   return (
-    <div className="min-h-screen bg-bg flex items-center justify-center p-4">
+    <div className="min-h-screen bg-bg flex items-center justify-center p-5 page-enter">
       <div className="w-full max-w-sm">
-        <div className="mb-8">
-          <p className="text-muted text-sm mb-1">Hey {user?.name?.split(' ')[0]},</p>
+
+        {/* Brand mark at top */}
+        <p className="text-center font-heading font-bold text-text text-base tracking-tight mb-8 opacity-60">
+          PocketPal
+        </p>
+
+        <div className="mb-6">
+          <p className="text-muted text-sm mb-1">Hey {firstName},</p>
           <h1 className="font-heading text-3xl font-bold text-text leading-tight">
             Set up your budget
           </h1>
@@ -67,7 +75,7 @@ export default function Onboarding() {
 
         <Card>
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            {/* Monthly budget */}
+
             <div>
               <Input
                 label="Monthly budget"
@@ -85,7 +93,6 @@ export default function Onboarding() {
               </p>
             </div>
 
-            {/* Savings goal */}
             <div>
               <Input
                 label="Savings goal (optional)"
@@ -102,7 +109,6 @@ export default function Onboarding() {
               </p>
             </div>
 
-            {/* Goal name */}
             <Input
               label="What are you saving for? (optional)"
               type="text"
@@ -116,11 +122,12 @@ export default function Onboarding() {
               <p className="text-danger text-xs text-center">{errors.api}</p>
             )}
 
-            <Button type="submit" loading={loading} className="mt-1">
+            <Button type="submit" loading={loading}>
               Start tracking
             </Button>
           </form>
         </Card>
+
       </div>
     </div>
   );

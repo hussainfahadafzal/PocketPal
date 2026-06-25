@@ -4,10 +4,10 @@ import Button from '../components/Button';
 import Card from '../components/Card';
 import Input from '../components/Input';
 import BottomNav from '../components/BottomNav';
+import TopBar from '../components/TopBar';
 
 const inr = (n) => Math.round(Math.abs(n)).toLocaleString('en-IN');
 
-// These match the app's design-system token values exactly
 const PALETTE = [
   { name: 'Blue',   hex: '#3B6CFF' },
   { name: 'Green',  hex: '#10B981' },
@@ -32,12 +32,14 @@ function TrashIcon() {
   );
 }
 
-function RupeeInput({ label, value, onChange, placeholder = '0' }) {
+function RupeeInput({ label, value, onChange, placeholder = '0', error }) {
   return (
     <div className="flex flex-col gap-1.5">
-      {label && <label className="text-sm font-medium text-muted">{label}</label>}
+      {label && (
+        <label className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">{label}</label>
+      )}
       <div className="relative">
-        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted font-heading pointer-events-none">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted font-heading pointer-events-none select-none">
           ₹
         </span>
         <input
@@ -46,12 +48,21 @@ function RupeeInput({ label, value, onChange, placeholder = '0' }) {
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full bg-surface-2 border border-border rounded-xl pl-9 pr-4 py-3
-            text-text text-sm outline-none focus:border-primary transition-colors
-            placeholder:text-muted/30"
+          className={`w-full bg-surface-2 border ${error ? 'border-danger' : 'border-border'}
+            rounded-xl pl-9 pr-4 py-3 text-text text-sm outline-none
+            focus:border-primary transition-all duration-150 placeholder:text-muted/30`}
         />
       </div>
+      {error && <p className="text-xs text-danger">{error}</p>}
     </div>
+  );
+}
+
+function SectionLabel({ children }) {
+  return (
+    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted mb-3">
+      {children}
+    </p>
   );
 }
 
@@ -60,12 +71,11 @@ export default function Budgets() {
   const [wallet, setWallet] = useState({ monthly_balance: '', savings_goal: '', goal_name: '' });
   const [walletSaving, setWalletSaving] = useState(false);
   const [walletStatus, setWalletStatus] = useState(null); // 'ok' | 'err'
-
   const [walletErrors, setWalletErrors] = useState({});
 
   // ── categories ──
   const [categories, setCategories] = useState([]);
-  const [catSpent, setCatSpent] = useState({}); // id → amount spent this month
+  const [catSpent, setCatSpent] = useState({});
   const [newCat, setNewCat] = useState({ name: '', monthly_cap: '', color: PALETTE[0].hex });
   const [catAdding, setCatAdding] = useState(false);
   const [catError, setCatError] = useState('');
@@ -162,8 +172,10 @@ export default function Budgets() {
   }
 
   return (
-    <div className="min-h-screen bg-bg pb-28">
-      <div className="max-w-sm mx-auto px-4 pt-8 flex flex-col gap-7">
+    <div className="min-h-screen bg-bg pb-28 page-enter">
+      <TopBar showLogout />
+
+      <div className="max-w-sm mx-auto px-4 pt-5 flex flex-col gap-6">
 
         <h1 className="font-heading text-2xl font-semibold text-text">Budgets</h1>
 
@@ -172,26 +184,18 @@ export default function Budgets() {
           <SectionLabel>Monthly Wallet</SectionLabel>
           <Card>
             <div className="flex flex-col gap-4">
-              <div>
-                <RupeeInput
-                  label="Monthly budget"
-                  value={wallet.monthly_balance}
-                  onChange={(v) => setWallet((w) => ({ ...w, monthly_balance: v }))}
-                />
-                {walletErrors.monthly_balance && (
-                  <p className="text-danger text-xs mt-1">{walletErrors.monthly_balance}</p>
-                )}
-              </div>
-              <div>
-                <RupeeInput
-                  label="Savings goal"
-                  value={wallet.savings_goal}
-                  onChange={(v) => setWallet((w) => ({ ...w, savings_goal: v }))}
-                />
-                {walletErrors.savings_goal && (
-                  <p className="text-danger text-xs mt-1">{walletErrors.savings_goal}</p>
-                )}
-              </div>
+              <RupeeInput
+                label="Monthly budget"
+                value={wallet.monthly_balance}
+                onChange={(v) => setWallet((w) => ({ ...w, monthly_balance: v }))}
+                error={walletErrors.monthly_balance}
+              />
+              <RupeeInput
+                label="Savings goal"
+                value={wallet.savings_goal}
+                onChange={(v) => setWallet((w) => ({ ...w, savings_goal: v }))}
+                error={walletErrors.savings_goal}
+              />
               <Input
                 label="Saving for (optional)"
                 placeholder="e.g. New laptop, Spring trip"
@@ -224,12 +228,12 @@ export default function Budgets() {
                     onChange={(e) => setNewCat((c) => ({ ...c, name: e.target.value }))}
                     onKeyDown={(e) => e.key === 'Enter' && addCategory()}
                     className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3
-                      text-text text-sm outline-none focus:border-primary transition-colors
+                      text-text text-sm outline-none focus:border-primary transition-all duration-150
                       placeholder:text-muted/40"
                   />
                 </div>
-                <div className="w-[90px] relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm pointer-events-none">₹</span>
+                <div className="w-[88px] relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm pointer-events-none select-none">₹</span>
                   <input
                     type="number"
                     min="0"
@@ -237,7 +241,7 @@ export default function Budgets() {
                     value={newCat.monthly_cap}
                     onChange={(e) => setNewCat((c) => ({ ...c, monthly_cap: e.target.value }))}
                     className="w-full bg-surface-2 border border-border rounded-xl pl-7 pr-2 py-3
-                      text-text text-sm outline-none focus:border-primary transition-colors
+                      text-text text-sm outline-none focus:border-primary transition-all duration-150
                       placeholder:text-muted/40"
                   />
                 </div>
@@ -245,16 +249,15 @@ export default function Budgets() {
 
               {/* Color swatches */}
               <div>
-                <p className="text-muted text-xs mb-2.5">Color</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted mb-2.5">Color</p>
                 <div className="flex gap-2.5">
                   {PALETTE.map(({ name, hex }) => (
                     <button
                       key={hex}
                       onClick={() => setNewCat((c) => ({ ...c, color: hex }))}
-                      className="w-7 h-7 rounded-full transition-transform duration-150 hover:scale-110"
+                      className="w-7 h-7 rounded-full transition-transform duration-150 hover:scale-110 active:scale-95"
                       style={{
                         backgroundColor: hex,
-                        // ring trick: inner ring = card bg, outer ring = swatch color
                         boxShadow: newCat.color === hex
                           ? `0 0 0 2px #16233D, 0 0 0 4px ${hex}`
                           : 'none',
@@ -278,24 +281,25 @@ export default function Budgets() {
 
           {/* Category list */}
           {categories.length === 0 ? (
-            <p className="text-muted text-sm text-center py-10">
-              No categories yet. Add one above to track spending by type.
-            </p>
+            <div className="text-center py-10">
+              <p className="text-text text-sm font-medium">No categories yet</p>
+              <p className="text-muted text-xs mt-1">Add one above to track spending by type</p>
+            </div>
           ) : (
             <div className="flex flex-col gap-3">
               {categories.map((cat) => {
-                const spent   = catSpent[cat.id] || 0;
-                const hasCap  = cat.monthly_cap != null;
-                const pct     = hasCap ? Math.min((spent / cat.monthly_cap) * 100, 100) : 0;
-                const isOver  = hasCap && spent > cat.monthly_cap;
-                const isNear  = hasCap && !isOver && pct >= 80;
+                const spent    = catSpent[cat.id] || 0;
+                const hasCap   = cat.monthly_cap != null;
+                const pct      = hasCap ? Math.min((spent / cat.monthly_cap) * 100, 100) : 0;
+                const isOver   = hasCap && spent > cat.monthly_cap;
+                const isNear   = hasCap && !isOver && pct >= 80;
                 const barColor = isOver ? '#EF4444' : isNear ? '#F59E0B' : (cat.color ?? '#3B6CFF');
                 const delPending = pendingDelete === cat.id;
 
                 return (
                   <div
                     key={cat.id}
-                    className={`border rounded-2xl p-4 transition-colors ${
+                    className={`border rounded-2xl p-4 transition-colors duration-150 ${
                       delPending ? 'bg-danger/5 border-danger/30' : 'bg-surface border-border'
                     }`}
                   >
@@ -317,7 +321,8 @@ export default function Budgets() {
                         <div className="flex items-center gap-2 shrink-0">
                           <button
                             onClick={() => deleteCategory(cat.id)}
-                            className="text-danger text-xs font-semibold px-2.5 py-1 rounded-lg bg-danger/10 hover:bg-danger/20 transition-colors"
+                            className="text-danger text-xs font-semibold px-2.5 py-1 rounded-lg
+                              bg-danger/10 hover:bg-danger/20 active:scale-95 transition-all duration-150"
                           >
                             Delete
                           </button>
@@ -331,7 +336,8 @@ export default function Budgets() {
                       ) : (
                         <button
                           onClick={() => setPendingDelete(cat.id)}
-                          className="text-muted/40 hover:text-danger p-1 rounded-lg hover:bg-danger/10 transition-colors shrink-0"
+                          className="text-muted/40 hover:text-danger p-1 rounded-lg
+                            hover:bg-danger/10 active:scale-95 transition-all duration-150 shrink-0"
                           aria-label="Delete category"
                         >
                           <TrashIcon />
@@ -367,13 +373,5 @@ export default function Budgets() {
       </div>
       <BottomNav />
     </div>
-  );
-}
-
-function SectionLabel({ children }) {
-  return (
-    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted mb-3">
-      {children}
-    </p>
   );
 }

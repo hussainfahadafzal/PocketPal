@@ -53,7 +53,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 bg-surface border-t border-border z-50"
+      className="fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur-sm border-t border-border/60 z-50"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="max-w-sm mx-auto flex">
@@ -63,9 +63,14 @@ export default function BottomNav() {
             <button
               key={tab.path}
               onClick={() => navigate(tab.path)}
-              className={`flex-1 flex flex-col items-center gap-1 pt-3 pb-3 transition-colors
-                ${active ? 'text-primary' : 'text-muted'}`}
+              className={`relative flex-1 flex flex-col items-center gap-1 pt-3 pb-3
+                transition-colors duration-150 active:opacity-70
+                ${active ? 'text-primary' : 'text-muted hover:text-text/70'}`}
             >
+              {/* Active indicator line */}
+              {active && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />
+              )}
               <svg
                 className="w-5 h-5"
                 fill="none"
@@ -75,11 +80,7 @@ export default function BottomNav() {
               >
                 {tab.icon}
               </svg>
-              <span
-                className={`text-[10px] font-medium tracking-wide ${
-                  active ? 'text-primary' : 'text-muted'
-                }`}
-              >
+              <span className={`text-[10px] font-medium tracking-wide ${active ? 'text-primary' : 'text-muted'}`}>
                 {tab.label}
               </span>
             </button>

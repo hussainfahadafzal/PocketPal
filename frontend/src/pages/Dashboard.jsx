@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import Spinner from '../components/Spinner';
 import BottomNav from '../components/BottomNav';
+import TopBar from '../components/TopBar';
 
 // Animates a number from 0 → target with ease-out cubic easing
 function useCountUp(target, duration = 1300) {
@@ -36,17 +37,16 @@ function greetingWord() {
   return 'evening';
 }
 
-// Indian number formatting: 1,00,000 style
 const inr = (n) => Math.round(Math.abs(n)).toLocaleString('en-IN');
 
 export default function Dashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
   const [nudge, setNudge] = useState(null);
+
   const animatedLimit = useCountUp(stats?.daily_spend_limit ?? 0);
 
   useEffect(() => {
@@ -72,23 +72,29 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-bg flex items-center justify-center">
-        <Spinner size="lg" />
+      <div className="min-h-screen bg-bg flex flex-col">
+        <TopBar showLogout />
+        <div className="flex-1 flex items-center justify-center">
+          <Spinner size="lg" />
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-bg flex items-center justify-center p-6">
-        <div className="text-center">
-          <p className="text-danger text-sm mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="text-primary text-sm underline"
-          >
-            Retry
-          </button>
+      <div className="min-h-screen bg-bg flex flex-col">
+        <TopBar showLogout />
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center">
+            <p className="text-danger text-sm mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="text-primary text-sm font-medium underline underline-offset-2"
+            >
+              Tap to retry
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -98,21 +104,15 @@ export default function Dashboard() {
   const savedMore = stats.saved_vs_yesterday > 0;
 
   return (
-    <div className="min-h-screen bg-bg pb-36">
-      <div className="max-w-sm mx-auto px-4 pt-8 flex flex-col gap-4">
+    <div className="min-h-screen bg-bg pb-28 page-enter">
+      <TopBar showLogout />
+
+      <div className="max-w-sm mx-auto px-4 pt-5 flex flex-col gap-4">
 
         {/* ── 1. Greeting ── */}
-        <div className="flex items-start justify-between">
-          <h1 className="font-heading text-2xl font-semibold text-text leading-snug">
-            Good {greetingWord()}, {firstName} 👋
-          </h1>
-          <button
-            onClick={logout}
-            className="text-muted text-xs mt-1 shrink-0 hover:text-text transition-colors"
-          >
-            Sign out
-          </button>
-        </div>
+        <h1 className="font-heading text-2xl font-semibold text-text leading-snug">
+          Good {greetingWord()}, {firstName} 👋
+        </h1>
 
         {/* ── 2. Hero card ── */}
         <div
@@ -135,9 +135,7 @@ export default function Dashboard() {
             Today you can spend
           </p>
 
-          {/* The ONE bold number */}
           <div className="relative z-10 mb-1">
-            {/* Soft glow behind the number */}
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
@@ -148,11 +146,7 @@ export default function Dashboard() {
             />
             <p
               className="font-heading font-bold text-white relative"
-              style={{
-                fontSize: 'clamp(3.5rem, 18vw, 5rem)',
-                lineHeight: 1,
-                letterSpacing: '-0.03em',
-              }}
+              style={{ fontSize: 'clamp(3.5rem, 18vw, 5rem)', lineHeight: 1, letterSpacing: '-0.03em' }}
             >
               <span className="text-white/75" style={{ fontSize: '55%', verticalAlign: 'super', marginRight: '0.05em' }}>
                 ₹
@@ -161,52 +155,47 @@ export default function Dashboard() {
             </p>
           </div>
 
-          {/* Sub-line */}
           <p className="text-white/55 text-sm mt-5 relative z-10">
             Balance left ₹{inr(stats.balance_left)}&nbsp;•&nbsp;
             {stats.days_left_in_month} day{stats.days_left_in_month !== 1 ? 's' : ''} to go
           </p>
         </div>
 
-        {/* ── 3. Saved pill ── */}
-        {savedMore && (
-          <div className="flex">
-            <div className="inline-flex items-center gap-2 bg-save/10 border border-save/25 rounded-full px-4 py-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-save shrink-0" />
-              <span className="text-save text-sm font-medium">
-                You saved ₹{inr(stats.saved_vs_yesterday)} more than yesterday 🔥
-              </span>
-            </div>
+        {/* ── 3. Badges row ── */}
+        {(savedMore || stats.streak_days > 0) && (
+          <div className="flex flex-wrap gap-2">
+            {savedMore && (
+              <div className="inline-flex items-center gap-2 bg-save/10 border border-save/25 rounded-full px-4 py-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-save shrink-0" />
+                <span className="text-save text-xs font-medium">
+                  Saved ₹{inr(stats.saved_vs_yesterday)} vs yesterday
+                </span>
+              </div>
+            )}
+            {stats.streak_days > 0 && (
+              <div className="inline-flex items-center gap-2 bg-streak/10 border border-streak/25 rounded-full px-4 py-2">
+                <span className="text-streak text-xs font-semibold">
+                  🔥 {stats.streak_days}-day streak
+                </span>
+              </div>
+            )}
           </div>
         )}
 
-        {/* ── 4. Streak badge ── */}
-        {stats.streak_days > 0 && (
-          <div className="flex">
-            <div className="inline-flex items-center gap-2 bg-streak/10 border border-streak/25 rounded-full px-4 py-2">
-              <span className="text-streak text-sm font-semibold">
-                🔥 {stats.streak_days}-day streak
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* ── 5. Pal nudge — first result from GET /pal/nudges ── */}
-        <div className="bg-warn/10 border border-warn/20 rounded-2xl px-5 py-4">
-          <p className="text-warn text-[10px] font-bold uppercase tracking-[0.12em] mb-2">
-            Pal says
-          </p>
-          {nudge ? (
-            <div className="flex items-start gap-2">
+        {/* ── 4. Pal nudge — only rendered when a nudge exists ── */}
+        {nudge && (
+          <div className="bg-warn/8 border border-warn/20 rounded-2xl px-5 py-4">
+            <p className="text-warn/80 text-[10px] font-bold uppercase tracking-[0.12em] mb-2">
+              Pal says
+            </p>
+            <div className="flex items-start gap-2.5">
               <span className="text-base shrink-0 leading-snug mt-0.5" aria-hidden>{nudge.icon}</span>
               <p className="text-text/85 text-sm leading-relaxed">{nudge.message}</p>
             </div>
-          ) : (
-            <p className="text-text/30 text-sm">…</p>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* ── 6. Quick stats ── */}
+        {/* ── 5. Quick stats ── */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-surface border border-border rounded-2xl p-4">
             <p className="text-muted text-xs mb-2">Spent today</p>
@@ -224,10 +213,12 @@ export default function Dashboard() {
 
       </div>
 
-      {/* ── 7. Floating add button — sits above the bottom nav ── */}
+      {/* ── 6. Floating add button ── */}
       <button
         onClick={() => navigate('/add')}
-        className="fixed bottom-[76px] right-5 flex items-center gap-2 bg-primary hover:bg-primary/90 active:scale-95 text-white font-semibold text-sm px-5 py-3.5 rounded-full transition-all duration-150 z-40"
+        className="fixed bottom-[76px] right-5 flex items-center gap-2 bg-primary
+          hover:bg-primary/90 active:scale-95 text-white font-semibold text-sm
+          px-5 py-3.5 rounded-full transition-all duration-150 z-40"
         style={{ boxShadow: '0 4px 24px rgba(59, 108, 255, 0.45)' }}
       >
         <span className="text-lg leading-none font-light">+</span>

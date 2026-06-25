@@ -7,9 +7,27 @@
 @layer base {
   body {
     @apply bg-bg text-text font-body;
+    -webkit-tap-highlight-color: transparent;
   }
 
   * {
     @apply box-border;
+  }
+}
+
+@layer utilities {
+  .page-enter {
+    animation: pp-fadein 0.2s ease-out both;
+  }
+}
+
+@keyframes pp-fadein {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

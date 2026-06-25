@@ -3,11 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import Button from '../components/Button';
 import Card from '../components/Card';
-import Input from '../components/Input';
-import Spinner from '../components/Spinner';
 import BottomNav from '../components/BottomNav';
 
-// Replace with the actual merchant UPI VPA before going live
 const MERCHANT_VPA = 'merchant@upi';
 
 function isMobile() {
@@ -32,7 +29,6 @@ function CheckCircle() {
   );
 }
 
-// ── Confirmation screen shown after a successful save ──
 function ConfirmScreen({ amount, onDone }) {
   const [copied, setCopied] = useState(false);
   const mobile = isMobile();
@@ -46,50 +42,57 @@ function ConfirmScreen({ amount, onDone }) {
   };
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col items-center justify-center p-6 pb-28">
-      <div className="w-full max-w-sm flex flex-col gap-5">
-        <div className="text-center flex flex-col gap-3">
-          <CheckCircle />
-          <div>
-            <h2 className="font-heading text-xl font-semibold text-text">Expense saved</h2>
-            <p className="text-muted text-sm mt-1">
-              ₹{parseFloat(amount).toLocaleString('en-IN')} recorded
-            </p>
-          </div>
-        </div>
+    <div className="min-h-screen bg-bg flex flex-col page-enter">
+      {/* Minimal header */}
+      <header className="h-14 flex items-center px-4 border-b border-border/40">
+        <span className="font-heading font-bold text-text text-base tracking-tight select-none">PocketPal</span>
+      </header>
 
-        {/* UPI payment card */}
-        <Card>
-          <p className="text-text text-sm font-semibold mb-1">Pay via UPI</p>
-          <p className="text-muted text-xs mb-4">
-            {mobile
-              ? 'Tap below to open your UPI app and complete the payment.'
-              : 'On your phone, open any UPI app and scan / paste the link below.'}
-          </p>
-
-          {mobile ? (
-            <a
-              href={upiLink}
-              className="block w-full text-center py-3 px-4 rounded-xl bg-primary
-                hover:bg-primary/90 text-white font-semibold text-sm transition-colors"
-            >
-              Open UPI App — ₹{parseFloat(amount).toLocaleString('en-IN')}
-            </a>
-          ) : (
-            <div className="flex flex-col gap-3">
-              <div className="bg-surface-2 border border-border rounded-xl p-3 font-mono text-xs text-muted break-all select-all">
-                {upiLink}
-              </div>
-              <Button variant="ghost" onClick={copyLink}>
-                {copied ? 'Copied!' : 'Copy UPI link'}
-              </Button>
+      <div className="flex-1 flex flex-col items-center justify-center p-5 pb-28">
+        <div className="w-full max-w-sm flex flex-col gap-5">
+          <div className="text-center flex flex-col gap-3">
+            <CheckCircle />
+            <div>
+              <h2 className="font-heading text-xl font-semibold text-text">Expense saved</h2>
+              <p className="text-muted text-sm mt-1">
+                ₹{parseFloat(amount).toLocaleString('en-IN')} recorded
+              </p>
             </div>
-          )}
-        </Card>
+          </div>
 
-        <Button variant="ghost" onClick={onDone}>
-          Done — back to dashboard
-        </Button>
+          <Card>
+            <p className="text-text text-sm font-semibold mb-1">Pay via UPI</p>
+            <p className="text-muted text-xs mb-4">
+              {mobile
+                ? 'Tap below to open your UPI app and complete the payment.'
+                : 'On your phone, open any UPI app and paste the link below.'}
+            </p>
+
+            {mobile ? (
+              <a
+                href={upiLink}
+                className="block w-full text-center py-3 px-4 rounded-xl bg-primary
+                  hover:bg-primary/90 active:scale-[0.97] text-white font-semibold text-sm
+                  transition-all duration-150"
+              >
+                Open UPI App — ₹{parseFloat(amount).toLocaleString('en-IN')}
+              </a>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <div className="bg-surface-2 border border-border rounded-xl p-3 font-mono text-xs text-muted break-all select-all">
+                  {upiLink}
+                </div>
+                <Button variant="ghost" onClick={copyLink}>
+                  {copied ? 'Copied!' : 'Copy UPI link'}
+                </Button>
+              </div>
+            )}
+          </Card>
+
+          <Button variant="ghost" onClick={onDone}>
+            Done — back to dashboard
+          </Button>
+        </div>
       </div>
 
       <BottomNav />
@@ -97,7 +100,6 @@ function ConfirmScreen({ amount, onDone }) {
   );
 }
 
-// ── Main add-expense form ──
 export default function AddExpense() {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
@@ -126,9 +128,9 @@ export default function AddExpense() {
     setLoading(true);
     try {
       await client.post('/expenses', {
-        amount: parseFloat(form.amount),
+        amount:      parseFloat(form.amount),
         category_id: form.categoryId ? parseInt(form.categoryId) : null,
-        note: form.note.trim() || null,
+        note:        form.note.trim() || null,
       });
       setSaved(true);
     } catch (err) {
@@ -152,31 +154,34 @@ export default function AddExpense() {
   const upiPreviewLink = `upi://pay?pa=${MERCHANT_VPA}&pn=PocketPal&am=${form.amount}&cu=INR`;
 
   return (
-    <div className="min-h-screen bg-bg pb-28">
-      <div className="max-w-sm mx-auto px-4 pt-8">
-
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-7">
+    <div className="min-h-screen bg-bg pb-28 page-enter">
+      {/* Page header with back button */}
+      <header className="sticky top-0 z-40 bg-bg/95 backdrop-blur-sm border-b border-border/40">
+        <div className="max-w-sm mx-auto px-4 h-14 flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
-            className="w-8 h-8 flex items-center justify-center rounded-xl border border-border text-muted hover:text-text transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-xl border border-border
+              text-muted hover:text-text hover:border-muted active:scale-95
+              transition-all duration-150 shrink-0"
             aria-label="Go back"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="font-heading text-xl font-semibold text-text">Add expense</h1>
+          <h1 className="font-heading text-base font-semibold text-text">Add expense</h1>
         </div>
+      </header>
 
+      <div className="max-w-sm mx-auto px-4 pt-5">
         <Card>
           <div className="flex flex-col gap-5">
 
-            {/* Amount — the main field, styled large */}
+            {/* Amount — the main field */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-muted">Amount</label>
+              <label className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Amount</label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-heading text-xl text-muted pointer-events-none">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-heading text-xl text-muted pointer-events-none select-none">
                   ₹
                 </span>
                 <input
@@ -187,9 +192,11 @@ export default function AddExpense() {
                   placeholder="0"
                   value={form.amount}
                   onChange={set('amount')}
+                  autoFocus
                   className={`w-full bg-surface-2 border ${errors.amount ? 'border-danger' : 'border-border'}
                     rounded-xl pl-9 pr-4 py-3.5 font-heading text-3xl font-bold text-text
-                    outline-none focus:border-primary transition-colors placeholder:text-muted/25`}
+                    outline-none focus:border-primary transition-all duration-150
+                    placeholder:text-muted/25`}
                 />
               </div>
               {errors.amount && <p className="text-xs text-danger">{errors.amount}</p>}
@@ -197,9 +204,8 @@ export default function AddExpense() {
 
             {/* Category */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-muted">Category</label>
+              <label className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Category</label>
               <div className="relative">
-                {/* Color dot when a category with a color is selected */}
                 {selectedCat?.color && (
                   <span
                     className="absolute left-4 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full pointer-events-none"
@@ -211,34 +217,42 @@ export default function AddExpense() {
                   onChange={set('categoryId')}
                   className={`w-full bg-surface-2 border border-border rounded-xl
                     ${selectedCat?.color ? 'pl-9' : 'pl-4'} pr-9 py-3
-                    text-text text-sm outline-none focus:border-primary transition-colors appearance-none`}
+                    text-text text-sm outline-none focus:border-primary transition-all duration-150
+                    appearance-none`}
                 >
                   <option value="">No category</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
                   <ChevronDown />
                 </div>
               </div>
             </div>
 
             {/* Note */}
-            <Input
-              label="Note (optional)"
-              type="text"
-              placeholder="Coffee, groceries, rent…"
-              value={form.note}
-              onChange={set('note')}
-              maxLength={120}
-            />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                Note <span className="normal-case tracking-normal font-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Coffee, groceries, rent…"
+                value={form.note}
+                onChange={set('note')}
+                maxLength={120}
+                className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3
+                  text-text text-sm outline-none focus:border-primary transition-all duration-150
+                  placeholder:text-muted/40"
+              />
+            </div>
 
             {errors.api && (
               <p className="text-danger text-xs text-center">{errors.api}</p>
             )}
 
-            <Button onClick={handleSave} loading={loading} className="mt-1">
+            <Button onClick={handleSave} loading={loading}>
               Save expense
             </Button>
 
@@ -251,7 +265,7 @@ export default function AddExpense() {
                     href={upiPreviewLink}
                     className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl
                       border border-primary/40 text-primary text-sm font-medium
-                      hover:bg-primary/8 transition-colors"
+                      hover:bg-primary/8 active:scale-[0.97] transition-all duration-150"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}

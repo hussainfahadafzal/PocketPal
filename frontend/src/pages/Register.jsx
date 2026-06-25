@@ -31,22 +31,23 @@ export default function Register() {
     try {
       await register(form.name.trim(), form.email, form.password);
     } catch (err) {
-      setErrors({ api: err.response?.data?.detail || 'Registration failed.' });
+      setErrors({ api: err.response?.data?.detail || 'Registration failed. Try again.' });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-bg flex items-center justify-center p-4">
+    <div className="min-h-screen bg-bg flex items-center justify-center p-5 page-enter">
       <div className="w-full max-w-sm">
+
         <div className="mb-8 text-center">
           <h1 className="font-heading text-4xl font-bold text-text tracking-tight">PocketPal</h1>
           <p className="text-muted text-sm mt-2">Take control of your student budget</p>
         </div>
 
         <Card>
-          <h2 className="font-heading text-xl font-semibold text-text mb-6">Create account</h2>
+          <h2 className="font-heading text-lg font-semibold text-text mb-5">Create account</h2>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <Input
@@ -94,18 +95,19 @@ export default function Register() {
               <p className="text-danger text-xs text-center">{errors.api}</p>
             )}
 
-            <Button type="submit" loading={loading} className="mt-2">
+            <Button type="submit" loading={loading} className="mt-1">
               Create account
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted mt-5">
             Already have one?{' '}
-            <Link to="/login" className="text-primary hover:underline font-medium">
+            <Link to="/login" className="text-primary hover:underline underline-offset-2 font-medium transition-colors">
               Sign in
             </Link>
           </p>
         </Card>
+
       </div>
     </div>
   );

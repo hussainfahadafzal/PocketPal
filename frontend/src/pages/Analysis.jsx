@@ -7,6 +7,7 @@ import client from '../api/client';
 import Card from '../components/Card';
 import Spinner from '../components/Spinner';
 import BottomNav from '../components/BottomNav';
+import TopBar from '../components/TopBar';
 
 const inr = (n) => Math.round(Math.abs(n)).toLocaleString('en-IN');
 
@@ -14,8 +15,6 @@ function currentMonth() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
-
-// ── Custom Recharts tooltips with app theme ──
 
 function BarTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -33,6 +32,18 @@ function PieTooltip({ active, payload }) {
     <div className="bg-surface-2 border border-border rounded-xl px-3 py-2 shadow-xl">
       <p className="text-text text-sm font-semibold">{payload[0].name}</p>
       <p className="text-muted text-xs">₹{inr(payload[0].value)}</p>
+    </div>
+  );
+}
+
+function EmptyChart() {
+  return (
+    <div className="h-[140px] flex flex-col items-center justify-center gap-2">
+      <svg className="w-8 h-8 text-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+          d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+      </svg>
+      <p className="text-muted text-sm">No expenses for this period</p>
     </div>
   );
 }
@@ -60,7 +71,6 @@ export default function Analysis() {
       .finally(() => setLoading(false));
   }, [month]);
 
-  // Nudges are not month-dependent, fetch once
   useEffect(() => {
     client.get('/pal/nudges').then((res) => setNudges(res.data)).catch(() => {});
   }, []);
@@ -70,7 +80,6 @@ export default function Analysis() {
     [categories]
   );
 
-  // Donut: sum per category
   const donutData = useMemo(() => {
     const totals = {};
     expenses.forEach((e) => {
@@ -89,7 +98,6 @@ export default function Analysis() {
       .sort((a, b) => b.value - a.value);
   }, [expenses, catById]);
 
-  // Bar: daily totals for this month up to today (or end of past month)
   const barData = useMemo(() => {
     const [y, m] = month.split('-').map(Number);
     const today = new Date();
@@ -98,7 +106,7 @@ export default function Analysis() {
 
     const daily = {};
     expenses.forEach((e) => {
-      // Parse day directly from ISO string to avoid timezone shifting
+      // Extract day directly from ISO string — no timezone shifting
       const day = parseInt(e.created_at.split('T')[0].split('-')[2], 10);
       daily[day] = (daily[day] || 0) + e.amount;
     });
@@ -113,8 +121,10 @@ export default function Analysis() {
   const hasData = expenses.length > 0;
 
   return (
-    <div className="min-h-screen bg-bg pb-28">
-      <div className="max-w-sm mx-auto px-4 pt-8 flex flex-col gap-5">
+    <div className="min-h-screen bg-bg pb-28 page-enter">
+      <TopBar showLogout />
+
+      <div className="max-w-sm mx-auto px-4 pt-5 flex flex-col gap-5">
 
         {/* ── Header ── */}
         <div className="flex items-center justify-between">
@@ -124,16 +134,26 @@ export default function Analysis() {
             value={month}
             onChange={(e) => setMonth(e.target.value)}
             className="bg-surface border border-border rounded-xl px-3 py-1.5 text-text text-xs
-              outline-none focus:border-primary transition-colors [color-scheme:dark]"
+              outline-none focus:border-primary transition-all duration-150 [color-scheme:dark]"
           />
         </div>
 
         {loading ? (
-          <div className="flex justify-center pt-20">
+          <div className="flex justify-center pt-16">
             <Spinner size="lg" />
           </div>
+
         ) : error ? (
-          <p className="text-danger text-sm text-center pt-20">{error}</p>
+          <div className="text-center pt-16">
+            <p className="text-danger text-sm mb-3">{error}</p>
+            <button
+              onClick={() => setMonth((m) => { /* force re-fetch */ return m; })}
+              className="text-primary text-sm font-medium underline underline-offset-2 active:opacity-70"
+            >
+              Tap to retry
+            </button>
+          </div>
+
         ) : (
           <>
             {/* ── Donut: spending by category ── */}
@@ -146,7 +166,6 @@ export default function Analysis() {
                 <EmptyChart />
               ) : (
                 <>
-                  {/* Chart + center label stacked via relative wrapper */}
                   <div className="relative">
                     <ResponsiveContainer width="100%" height={210}>
                       <PieChart>
@@ -168,7 +187,6 @@ export default function Analysis() {
                       </PieChart>
                     </ResponsiveContainer>
 
-                    {/* Center text — absolutely centred over the donut hole */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                       <p className="font-heading text-xl font-bold text-text leading-none">
                         ₹{inr(totalSpent)}
@@ -177,7 +195,6 @@ export default function Analysis() {
                     </div>
                   </div>
 
-                  {/* Legend */}
                   <div className="flex flex-col gap-2.5 mt-2">
                     {donutData.map((item, i) => (
                       <div key={i} className="flex items-center justify-between">
@@ -252,9 +269,12 @@ export default function Analysis() {
               </p>
 
               {nudges.length === 0 ? (
-                <p className="text-muted text-sm leading-relaxed">
-                  Add more expenses this month and Pal will reveal your spending personality.
-                </p>
+                <div className="flex flex-col items-center gap-2 py-4">
+                  <p className="text-text text-sm font-medium">Nothing yet</p>
+                  <p className="text-muted text-xs text-center leading-relaxed">
+                    Add more expenses this month and Pal will reveal your spending personality.
+                  </p>
+                </div>
               ) : (
                 <div className="flex flex-col gap-4">
                   {nudges.map((nudge, i) => (
@@ -277,14 +297,6 @@ export default function Analysis() {
         )}
       </div>
       <BottomNav />
-    </div>
-  );
-}
-
-function EmptyChart() {
-  return (
-    <div className="h-[140px] flex items-center justify-center">
-      <p className="text-muted text-sm">No expenses for this period</p>
     </div>
   );
 }
