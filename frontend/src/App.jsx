@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import InstallBanner from './components/InstallBanner';
 import Spinner from './components/Spinner';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -27,6 +28,7 @@ function ProtectedRoute({ children }) {
 
 export default function App() {
   return (
+    <>
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -80,5 +82,7 @@ export default function App() {
       />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
+    <InstallBanner />
+    </>
   );
 }

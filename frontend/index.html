@@ -2,8 +2,32 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover lets the app extend under iPhone notch/dynamic island -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>PocketPal</title>
+
+    <!-- PWA manifest (injected by vite-plugin-pwa at build time) -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- Browser theme colour (Android Chrome tab / address bar) -->
+    <meta name="theme-color" content="#3B6CFF" />
+    <meta name="color-scheme" content="dark" />
+
+    <!-- ── iOS PWA ─────────────────────────────────────────────────── -->
+    <!-- Enables full-screen launch without Safari chrome -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <!-- black-translucent = status bar overlays app content (pair with safe-area insets) -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- Name shown under the icon on the iOS home screen -->
+    <meta name="apple-mobile-web-app-title" content="PocketPal" />
+    <!-- iOS ignores the manifest icons; this is what it uses instead -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+    <!-- Prevent iOS from auto-linking phone numbers -->
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- Favicon for desktop browsers -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
   </head>
   <body>
     <div id="root"></div>
