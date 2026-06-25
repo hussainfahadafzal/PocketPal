@@ -10,6 +10,7 @@ import AddExpense from './pages/AddExpense';
 import History from './pages/History';
 import Budgets from './pages/Budgets';
 import Analysis from './pages/Analysis';
+import Score from './pages/Score';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -77,6 +78,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Analysis />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/score"
+        element={
+          <ProtectedRoute>
+            <Score />
           </ProtectedRoute>
         }
       />

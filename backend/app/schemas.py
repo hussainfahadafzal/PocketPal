@@ -143,3 +143,15 @@ class JarResponse(BaseModel):
     jar_goal_amount: float
     progress_pct: float   # 0–100; 0 when no goal set
     double_active: bool   # True when current_streak >= 7 (2× round-up active)
+
+
+# ── PocketScore ───────────────────────────────────────────────────────────────
+
+class PocketScoreResponse(BaseModel):
+    score: int             # 0–850 composite
+    label: str             # "Poor" | "Fair" | "Good" | "Excellent"
+    tips: List[str]        # 2–3 actionable tips
+    score_discipline: int  # 0–300 component
+    score_saving: int      # 0–250 component
+    score_streak: int      # 0–200 component
+    score_caps: int        # 0–100 component

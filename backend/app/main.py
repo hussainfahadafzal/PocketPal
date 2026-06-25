@@ -8,6 +8,7 @@ from .routers import categories as categories_router
 from .routers import dashboard as dashboard_router
 from .routers import expenses as expenses_router
 from .routers import pal as pal_router
+from .routers import pocketscore as pocketscore_router
 from .routers import streak as streak_router
 from .routers import wallet as wallet_router
 
@@ -71,6 +72,7 @@ app.include_router(expenses_router.router)
 app.include_router(dashboard_router.router)
 app.include_router(pal_router.router)
 app.include_router(streak_router.router)
+app.include_router(pocketscore_router.router)
 
 
 @app.get("/", tags=["health"])
