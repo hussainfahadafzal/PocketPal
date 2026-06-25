@@ -1,209 +1,182 @@
 <div align="center">
 
-# 💸 PocketPal
+# PocketPal
 
-### Spend Smart. Save Sharp.
-
-**A student-first expense tracker that makes saving money feel addictive — like scrolling Instagram, not using a bank app.**
+**Spend Smart. Save Sharp.**
 
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
 [![PWA](https://img.shields.io/badge/PWA-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps/)
 
-**🔗 Live Demo: [pocketpal.vercel.app](https://<your-vercel-url>.vercel.app)** &nbsp;•&nbsp; 📱 Installable as an app (Add to Home Screen)
+[Live Demo](https://pocketpal.vercel.app) &nbsp;·&nbsp; [Report a Bug](https://github.com/hussainfahadafzal/pocketpal/issues)
 
 </div>
 
 ---
 
-## 📖 Overview
+## What is this?
 
-Most students get a fixed budget from parents — and by the 20th, the money's gone with no idea where it went. Existing finance apps are built for adults and feel like spreadsheets.
+I built PocketPal because I kept running out of money before the month ended and had no idea where it went. Every finance app I tried was either too complex or too boring to open twice.
 
-**PocketPal** flips this. It gives students **one number every morning** — *"Today you can spend ₹340"* — and turns saving into a game with streaks, a round-up savings jar, and a personal financial score. Built as a **Progressive Web App (PWA)**, it installs on any phone without the Play Store.
+The idea is simple: tell it your budget and when you'll get paid next, and it figures out exactly how much you can spend today. Not this week. Not this month. **Today.** That one number changes everything — it makes the abstract ("I have ₹8000") concrete ("I can spend ₹340 today").
 
-> 💡 PocketPal tracks spending intent — real payments happen on PhonePe / Google Pay / Paytm. **No money is stored or moved by PocketPal.**
+The streak calendar, savings jar, and score came later. Turns out making saving feel like a game is not a gimmick — it actually works.
+
+> PocketPal tracks spending intent. Real payments happen on PhonePe / GPay / Paytm. No money is stored or moved.
 
 ---
 
-## ✨ Features
+## Screenshots
 
-### 🎯 Daily Spend Limit (core)
-One personalized number every day, recalculated automatically:
+| Dashboard | Streak Calendar | PocketScore |
+|:--:|:--:|:--:|
+| <img src="screenshots/dashboard.png" width="220"/> | <img src="screenshots/streak.png" width="220"/> | <img src="screenshots/score.png" width="220"/> |
+
+| Budgets | Spending Analysis | Add Expense |
+|:--:|:--:|:--:|
+| <img src="screenshots/budgets.png" width="220"/> | <img src="screenshots/analysis.png" width="220"/> | <img src="screenshots/add.png" width="220"/> |
+
+---
+
+## Features
+
+**Daily Spend Limit**
+
+The core of the app. Every morning it calculates:
+
 ```
 Daily Limit = (Balance − Savings Goal) ÷ Days Left in Cycle
 ```
-- **Flexible budget cycle** — works for any income pattern. Set a refill date *or* just "make this last X days" (perfect for irregular student income).
-- Recalculates after every expense.
 
-### 🔥 Savings Streaks + Calendar
-Stay under your daily limit → build a streak. A monthly calendar lights up 🔥 for every disciplined day — same habit-loop psychology as Duolingo.
+Budget cycles aren't tied to a calendar month — you set a refill date or just say "make this last 30 days." Works for students who get pocket money at random, freelancers waiting on invoices, anyone with irregular income.
 
-### 🪙 Round-up Savings Jar
-Every expense rounds up to the next ₹10, and the spare is stashed in a virtual **Savings Jar** with a goal (e.g. *"Goa Fund ₹2000"*) and progress bar.
-- **Combo reward:** a 7-day streak unlocks **2× round-up**.
-- *(Virtual tracker — shows what you could save; PocketPal never holds funds.)*
+**Streak Calendar**
 
-### 🤖 Pal — Rule-based Nudges
-Proactive, friendly insights from your spending: *"You spend most on Saturdays"*, *"You're over budget on Food"*, *"Nice — under your limit today 🔥"*, plus a **Financial Personality** card.
+A heatmap of every day you stayed under your limit. Green day = under budget, red day = over. The streak counter animates when it goes up. Missing a day resets it to zero. It sounds harsh but that's the point — you actually stop and think before the third chai.
 
-### 💜 PocketScore
-A 0–850 financial score built from budget discipline, saving rate, streak strength, and category adherence — with tips on how to level up. *(Display-only in MVP; credit/lending is future scope.)*
+**Round-up Saving**
 
-### 📊 Spending Analysis
-Category-wise donut chart, daily spend trend, and full expense history with month + category filters.
+Every time you log an expense, it rounds up to the nearest ₹10 and puts the difference in a virtual Savings Jar. Log ₹47 → ₹3 goes to the jar. It's small enough that you don't feel it, but it adds up. Keep a 7-day streak and every round-up doubles.
 
-### 📱 Installable PWA
-Add to Home Screen → full-screen, app-like experience on any phone. No Play Store needed.
+**Savings Jar + Goals**
 
-### 🔐 Secure Auth
-JWT-based registration and login. Every user's data is fully isolated.
+Name a goal, set a target, watch the bar fill. The jar total and progress animate on load — a small detail that makes it feel real.
 
----
+**PocketScore**
 
-## 📸 Screenshots
+A 0–850 score based on how well you're sticking to your budget, building your streak, hitting your savings goal, and staying within category caps. Comes with 2–3 specific tips to improve it. Display-only — no connection to credit scores or lending.
 
-<!-- Apne app ke screenshots yahan daal. Dashboard hero zaroor. -->
-<div align="center">
+**Pal Nudges**
 
-| Dashboard (Daily Limit) | Streak Calendar | Savings Jar |
-|:--:|:--:|:--:|
-| <img src="screenshots/dashboard.png" width="220"/> | <img src="screenshots/streak.png" width="220"/> | <img src="screenshots/jar.png" width="220"/> |
+Pattern-based observations from your spending: when you tend to overspend, which categories are eating your budget, whether you're on track. More useful than a generic "you spent ₹200 on food" notification.
 
-| Spending Analysis | PocketScore | Add Expense |
-|:--:|:--:|:--:|
-| <img src="screenshots/analysis.png" width="220"/> | <img src="screenshots/score.png" width="220"/> | <img src="screenshots/add.png" width="220"/> |
+**Spending Analysis**
 
-</div>
+Category breakdown (donut chart) and daily spend trend (bar chart), for any month you pick. Simple, fast, no clutter.
+
+**PWA**
+
+Add to Home Screen on Android or iOS. Opens full-screen with no browser chrome. No app store, no waiting for review.
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-| Layer | Technology |
+| | |
 |---|---|
-| **Frontend** | React (Vite), Tailwind CSS, React Router, Recharts, Framer Motion |
-| **Backend** | FastAPI (Python), SQLAlchemy |
-| **Database** | PostgreSQL (production) / SQLite (local dev) |
-| **Auth** | JWT (python-jose) + bcrypt (passlib) |
-| **App** | PWA (vite-plugin-pwa) — installable, offline shell |
+| **Frontend** | React 18, Vite 5, Tailwind CSS, Framer Motion, Recharts, React Router |
+| **Backend** | FastAPI, SQLAlchemy, Pydantic v2, python-jose (JWT) |
+| **Database** | PostgreSQL (production) · SQLite (local dev) |
+| **PWA** | vite-plugin-pwa + Workbox |
 | **Hosting** | Vercel (frontend) · Render (backend) · Neon (PostgreSQL) |
 
-### Architecture
-
 ```
-┌─────────────────┐      REST API (JWT)      ┌──────────────────┐      SQLAlchemy      ┌──────────────┐
-│   React (PWA)    │ ───────────────────────► │   FastAPI         │ ───────────────────► │  PostgreSQL  │
-│   Vercel         │ ◄─────────────────────── │   Render          │ ◄─────────────────── │  Neon        │
-└─────────────────┘        JSON               └──────────────────┘                      └──────────────┘
+React PWA (Vercel)  ──── REST/JWT ────▶  FastAPI (Render)  ────▶  PostgreSQL (Neon)
 ```
 
 ---
 
-## 🚀 Local Setup
+## Running locally
 
-### Prerequisites
-- Python 3.10+
-- Node.js 18+
-- Git
+You need Python 3.10+ and Node 18+.
 
-### 1. Clone
-```bash
-git clone https://github.com/<your-username>/pocketpal.git
-cd pocketpal
-```
+**Backend**
 
-### 2. Backend
 ```bash
 cd backend
 pip install -r requirements.txt
 ```
+
 Create `backend/.env`:
+
 ```env
 DATABASE_URL=sqlite:///./pocketpal.db
-JWT_SECRET_KEY=your-long-random-secret
+JWT_SECRET_KEY=your-secret-here
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=10080
 ```
-> Generate a secret: `python -c "import secrets; print(secrets.token_hex(32))"`
 
-Run:
+To generate a secret key:
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
 ```bash
 uvicorn app.main:app --reload
+# docs at http://localhost:8000/docs
 ```
-API docs → `http://localhost:8000/docs`
 
-### 3. Frontend
+**Frontend**
+
 ```bash
 cd frontend
 npm install
 ```
+
 Create `frontend/.env`:
+
 ```env
 VITE_API_URL=http://localhost:8000
 ```
-Run:
+
 ```bash
 npm run dev
+# at http://localhost:5173
 ```
-App → `http://localhost:5173`
 
-> Run backend and frontend in **two separate terminals**.
-
----
-
-## ☁️ Deployment
-
-| Component | Platform | Notes |
-|---|---|---|
-| Database | **Neon** | Free PostgreSQL — copy the connection string |
-| Backend | **Render** | Root dir `backend`, start: `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
-| Frontend | **Vercel** | Root dir `frontend`, set `VITE_API_URL` to the backend URL |
-
-Backend env vars on Render: `DATABASE_URL`, `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `FRONTEND_URL` (for CORS).
+Run both in separate terminals.
 
 ---
 
-## 🗺️ Roadmap
+## Deployment
 
-**✅ Phase 1 — MVP (current)**
-Daily Spend Limit · Expense logging + UPI redirect · Budget categories · History + filters · Streaks · Round-up jar · Rule-based Pal nudges · PocketScore v0 · PWA · JWT auth
-
-**🔜 Phase 2 — Social Layer**
-FinFeed (anonymous savings feed) · Squad goals & challenges · Shareable streaks · Push notifications · CSV/PDF export
-
-**🔮 Phase 3 — Intelligence & Credit**
-ML-based spend predictions · PocketScore v2 + micro-lending (NBFC partners) · Brand challenge marketplace · Campus partnerships · Bank statement auto-import
-
----
-
-## 👥 Team BrainFuel
-
-B.Tech IT students building India's social fintech platform.
-
-| Name | Role |
+| Component | Platform |
 |---|---|
-| **Fahad Afzal Hussain** | Full Stack + Product Lead |
-| **Sameer Ahmad** | Backend Developer |
-| **Kunal Bansal** | Frontend Developer |
-| **Ujjwal Manocha** | Data & Analytics |
+| Database | Neon (free PostgreSQL tier) |
+| Backend | Render — root dir `backend`, start cmd: `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+| Frontend | Vercel — root dir `frontend`, set `VITE_API_URL` to your Render backend URL |
+
+Set `DATABASE_URL`, `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, and `FRONTEND_URL` (for CORS) in Render's environment variables.
 
 ---
 
-## 📄 License
+## Roadmap
 
-This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
+The MVP is live. Here's what comes next:
+
+- **Phase 2** — social layer: anonymous savings feed, squad challenges, shareable score cards, push notifications
+- **Phase 3** — intelligence: ML-based spend forecasting, smarter Pal nudges, bank statement import
+- **Phase 4** — credit: PocketScore v2 as a real financial reputation layer, micro-lending through NBFC partners
 
 ---
 
-<div align="center">
+## About
 
-**Built with ❤️ by Team BrainFuel**
+Built by **Fahad Afzal Hussain** — Founder & CEO, PocketPal.
 
-*Spend Smart. Save Sharp.*
+---
 
-</div>
+*MIT License*
