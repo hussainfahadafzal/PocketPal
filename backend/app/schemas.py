@@ -79,3 +79,15 @@ class ExpenseResponse(ExpenseCreate):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# --- Dashboard ---
+
+class DashboardResponse(BaseModel):
+    daily_spend_limit: float
+    spent_today: float
+    spent_this_month: float
+    balance_left: float
+    days_left_in_month: int
+    saved_vs_yesterday: float
+    streak_days: int
