@@ -177,6 +177,3 @@ The MVP is live. Here's what comes next:
 
 Built by **Fahad Afzal Hussain** — Founder & CEO, PocketPal.
 
----
-
-*MIT License*
