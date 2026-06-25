@@ -4,12 +4,35 @@ import client from '../api/client';
 import { useCountUp } from '../hooks/useCountUp';
 
 const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-
 const SPRING = { duration: 0.55, ease: [0.22, 1, 0.36, 1] };
 
+// Parse "YYYY-MM-DD" as a LOCAL date (avoids UTC-midnight timezone drift)
+function parseLocalDate(isoStr) {
+  const [y, m, d] = isoStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function addDays(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+function toISO(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function cycleDateLabel(start, end) {
+  const s = parseLocalDate(start);
+  const e = parseLocalDate(end);
+  const opts = { day: 'numeric', month: 'short' };
+  if (s.getFullYear() !== e.getFullYear())
+    return `${s.toLocaleDateString('en-IN', { ...opts, year: 'numeric' })} – ${e.toLocaleDateString('en-IN', { ...opts, year: 'numeric' })}`;
+  return `${s.toLocaleDateString('en-IN', opts)} – ${e.toLocaleDateString('en-IN', opts)}`;
+}
+
 /**
- * celebrateKey – bump this (e.g. 0 → 1) to play the streak-bump + glow animation.
- *                Fires once per key change, waits for data to be available first.
+ * celebrateKey – bump to trigger streak-bump + glow animation.
  */
 export default function StreakCalendar({ celebrateKey = 0 }) {
   const [data, setData] = useState(null);
@@ -21,19 +44,12 @@ export default function StreakCalendar({ celebrateKey = 0 }) {
     client.get('/streak/calendar').then((r) => setData(r.data)).catch(() => {});
   }, []);
 
-  // Fire streak-bump + glow when celebrateKey changes AND data is ready.
   useEffect(() => {
     if (celebrateKey === 0) return;
     if (celebrateKey === prevCelebKeyRef.current) return;
     if (!data || data.current_streak <= 0) return;
-
     prevCelebKeyRef.current = celebrateKey;
-
-    numControls.start({
-      scale: [1, 1.45, 0.85, 1.15, 1],
-      transition: { duration: 0.52, ease: 'easeOut' },
-    });
-
+    numControls.start({ scale: [1, 1.45, 0.85, 1.15, 1], transition: { duration: 0.52, ease: 'easeOut' } });
     setGlowing(true);
     const t = setTimeout(() => setGlowing(false), 700);
     return () => clearTimeout(t);
@@ -43,28 +59,39 @@ export default function StreakCalendar({ celebrateKey = 0 }) {
 
   if (!data) return null;
 
-  // ── Build full-month grid ────────────────────────────────────────────────
-  const now = new Date();
-  const todayDay    = now.getDate();
-  const todayYear   = now.getFullYear();
-  const todayMonth  = now.getMonth() + 1;
-  const daysInMonth = new Date(todayYear, todayMonth, 0).getDate();
+  // ── Build cycle grid ─────────────────────────────────────────────────────
+  const cycleStart = parseLocalDate(data.cycle_start);
+  const cycleEnd   = parseLocalDate(data.cycle_end);
+  const todayLocal = new Date();
+  todayLocal.setHours(0, 0, 0, 0);
 
+  const totalDays = Math.round((cycleEnd - cycleStart) / 86400000) + 1;
+
+  // Index API days by ISO date string
   const dayMap = {};
-  (data.days || []).forEach((d) => {
-    const n = parseInt(d.date.split('-')[2], 10);
-    dayMap[n] = d;
+  (data.days || []).forEach((d) => { dayMap[d.date] = d; });
+
+  const cycleCells = Array.from({ length: totalDays }, (_, i) => {
+    const cellDate = addDays(cycleStart, i);
+    const isoDate  = toISO(cellDate);
+    const isFuture = cellDate > todayLocal;
+    const dayNum   = cellDate.getDate();
+
+    if (isFuture) return { dayNum, isoDate, future: true };
+    const d = dayMap[isoDate];
+    return {
+      dayNum,
+      isoDate,
+      future: false,
+      under_limit: d?.under_limit ?? false,
+      is_today: d?.is_today ?? false,
+    };
   });
 
-  const monthCells = Array.from({ length: daysInMonth }, (_, i) => {
-    const dayNum = i + 1;
-    if (dayNum > todayDay) return { dayNum, future: true };
-    return { dayNum, future: false, ...(dayMap[dayNum] ?? { under_limit: false, is_today: false }) };
-  });
-
-  const firstWeekday = new Date(todayYear, todayMonth - 1, 1).getDay();
-  const startOffset  = (firstWeekday + 6) % 7;
-  const gridCells    = [...Array(startOffset).fill(null), ...monthCells];
+  // Monday-first offset for the first column
+  const startDow    = cycleStart.getDay(); // 0=Sun
+  const startOffset = (startDow + 6) % 7;
+  const gridCells   = [...Array(startOffset).fill(null), ...cycleCells];
 
   return (
     <motion.div
@@ -75,7 +102,6 @@ export default function StreakCalendar({ celebrateKey = 0 }) {
       {/* ── Streak headline ──────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-baseline gap-2 relative">
-          {/* Radial glow burst behind the streak number */}
           <AnimatePresence>
             {glowing && (
               <motion.div
@@ -102,7 +128,6 @@ export default function StreakCalendar({ celebrateKey = 0 }) {
               >
                 🔥
               </motion.span>
-              {/* motion.span needs display:inline-block for scale transforms */}
               <motion.span
                 animate={numControls}
                 className="font-display font-bold relative z-10"
@@ -128,8 +153,9 @@ export default function StreakCalendar({ celebrateKey = 0 }) {
           )}
         </div>
 
+        {/* Cycle date range label */}
         <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted/50">
-          {now.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
+          {cycleDateLabel(data.cycle_start, data.cycle_end)}
         </span>
       </div>
 
@@ -141,7 +167,6 @@ export default function StreakCalendar({ celebrateKey = 0 }) {
           border: '1px solid rgba(30,45,78,0.55)',
         }}
       >
-        {/* Day-of-week labels */}
         <div className="grid grid-cols-7 gap-1 mb-1.5">
           {DAY_LABELS.map((l, i) => (
             <div key={i} className="flex items-center justify-center">
@@ -150,12 +175,11 @@ export default function StreakCalendar({ celebrateKey = 0 }) {
           ))}
         </div>
 
-        {/* Day cells */}
         <div className="grid grid-cols-7 gap-1">
           {gridCells.map((cell, idx) => {
             if (!cell) return <div key={`pad-${idx}`} className="aspect-square" />;
 
-            const { dayNum, future, under_limit, is_today } = cell;
+            const { dayNum, isoDate, future, under_limit, is_today } = cell;
 
             let bg, numColor, shadow, ringStyle;
 
@@ -172,15 +196,12 @@ export default function StreakCalendar({ celebrateKey = 0 }) {
             }
 
             if (is_today) {
-              ringStyle = {
-                outline: '2px solid rgba(255,255,255,0.55)',
-                outlineOffset: '2px',
-              };
+              ringStyle = { outline: '2px solid rgba(255,255,255,0.55)', outlineOffset: '2px' };
             }
 
             return (
               <motion.div
-                key={`d-${dayNum}`}
+                key={isoDate}
                 className="aspect-square rounded-lg flex items-center justify-center"
                 style={{ background: bg, boxShadow: shadow, ...ringStyle }}
                 initial={!future ? { opacity: 0, scale: 0.6 } : false}
@@ -188,7 +209,7 @@ export default function StreakCalendar({ celebrateKey = 0 }) {
                 transition={{
                   duration: 0.25,
                   ease: 'backOut',
-                  delay: !future ? 0.05 + (dayNum - 1) * 0.018 : 0,
+                  delay: !future ? 0.05 + idx * 0.008 : 0,
                 }}
               >
                 <span className="text-[9px] font-bold leading-none" style={{ color: numColor }}>
@@ -203,10 +224,7 @@ export default function StreakCalendar({ celebrateKey = 0 }) {
       {/* ── Legend ───────────────────────────────────────────────────── */}
       <div className="flex items-center gap-4 mt-2.5 px-1">
         <div className="flex items-center gap-1.5">
-          <div
-            className="w-2.5 h-2.5 rounded-sm"
-            style={{ background: 'linear-gradient(135deg, #EC4899 0%, #F97316 100%)' }}
-          />
+          <div className="w-2.5 h-2.5 rounded-sm" style={{ background: 'linear-gradient(135deg, #EC4899 0%, #F97316 100%)' }} />
           <span className="text-[10px] text-muted/60">Under limit</span>
         </div>
         <div className="flex items-center gap-1.5">

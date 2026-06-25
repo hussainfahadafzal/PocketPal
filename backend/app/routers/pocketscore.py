@@ -4,7 +4,7 @@ PocketScore: a 0–850 composite financial-health score derived from four signal
 Signal                 Max pts  Formula
 ─────────────────────  ───────  ───────────────────────────────────────────────
 Budget Discipline        300    (days_under_limit / days_elapsed) × 300
-Saving Rate              250    monthly-goal track (0–125) + jar progress (0–125)
+Saving Rate              250    cycle-goal track (0–125) + jar progress (0–125)
 Streak Strength          200    min(streak, 30) / 30 × 200
 Category Cap Adherence   100    (cats_under_cap / capped_cats) × 100; 50 if none set
 ─────────────────────  ───────
@@ -12,8 +12,7 @@ Total                    850
 
 Labels: 0–349 Poor | 350–549 Fair | 550–699 Good | 700–850 Excellent
 """
-import calendar
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
@@ -23,7 +22,12 @@ from ..auth import get_current_user
 from ..database import get_db
 from ..models import Category, Expense, User, Wallet
 from ..schemas import PocketScoreResponse
-from ..utils import compute_current_streak, get_daily_spend_limit, get_daily_totals_for_month
+from ..utils import (
+    compute_current_streak,
+    get_cycle_context,
+    get_daily_spend_limit,
+    get_daily_totals_for_cycle,
+)
 
 router = APIRouter(prefix="/pocketscore", tags=["pocketscore"])
 
@@ -38,55 +42,57 @@ def get_pocket_score(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wallet not set up yet")
 
     today = date.today()
-    year, month = today.year, today.month
-    last_day = calendar.monthrange(year, month)[1]
+    ctx = get_cycle_context(wallet, today)
 
-    daily = get_daily_totals_for_month(db, current_user.id, year, month)
+    daily = get_daily_totals_for_cycle(
+        db, current_user.id, ctx["cycle_start"], ctx["effective_today"]
+    )
     daily_limit = get_daily_spend_limit(wallet, daily, today)
-    current_streak = compute_current_streak(daily, daily_limit, today)
+    current_streak = compute_current_streak(
+        daily, daily_limit, ctx["effective_today"], ctx["cycle_start"]
+    )
 
-    # ── Category spending this month ──────────────────────────────────────────
+    # ── Category spending this cycle ──────────────────────────────────────────
+    cs, ce = ctx["cycle_start"], ctx["effective_today"]
     cat_rows = (
         db.query(Expense.category_id, func.sum(Expense.amount).label("total"))
         .filter(
             Expense.user_id == current_user.id,
             Expense.category_id.isnot(None),
-            Expense.created_at >= datetime(year, month, 1),
-            Expense.created_at <= datetime(year, month, last_day, 23, 59, 59),
+            Expense.created_at >= datetime(cs.year, cs.month, cs.day),
+            Expense.created_at <= datetime(ce.year, ce.month, ce.day, 23, 59, 59),
         )
         .group_by(Expense.category_id)
         .all()
     )
     cat_spent: dict[int, float] = {row.category_id: row.total for row in cat_rows}
-
     categories = db.query(Category).filter(Category.user_id == current_user.id).all()
 
     # ── Signal 1: Budget Discipline (0–300) ───────────────────────────────────
-    days_elapsed = today.day
+    days_elapsed = (ctx["effective_today"] - ctx["cycle_start"]).days + 1
     days_under = sum(
-        1 for d in range(1, today.day + 1)
-        if daily.get(date(year, month, d), 0.0) <= daily_limit
+        1 for i in range(days_elapsed)
+        if daily.get(ctx["cycle_start"] + timedelta(days=i), 0.0) <= daily_limit
     )
     pct_under = days_under / days_elapsed if days_elapsed > 0 else 0.0
     score_discipline = round(pct_under * 300)
 
     # ── Signal 2: Saving Rate (0–250) ─────────────────────────────────────────
-    spent_this_month = sum(daily.values())
-    remaining = wallet.monthly_balance - spent_this_month
+    spent_this_cycle = sum(daily.values())
+    remaining = wallet.monthly_balance - spent_this_cycle
 
-    # 2a: on track toward monthly savings goal (0–125)
+    # 2a: on track toward savings goal (0–125)
     if wallet.savings_goal > 0:
         rate_goal = max(0.0, min(remaining / wallet.savings_goal, 1.0))
         score_goal = round(rate_goal * 125)
     else:
         score_goal = 0
 
-    # 2b: savings jar progress (0–125)
+    # 2b: savings jar progress (0–125 with goal, 0–60 without)
     if wallet.jar_goal_amount > 0:
         rate_jar = min(wallet.savings_jar / wallet.jar_goal_amount, 1.0)
         score_jar = round(rate_jar * 125)
     elif wallet.savings_jar > 0:
-        # No goal set yet — flat partial bonus for having *any* jar savings (max at ₹500)
         score_jar = round(min(wallet.savings_jar / 500.0, 1.0) * 60)
     else:
         score_jar = 0
@@ -94,17 +100,14 @@ def get_pocket_score(
     score_saving = score_goal + score_jar
 
     # ── Signal 3: Streak Strength (0–200) ────────────────────────────────────
-    streak_capped = min(current_streak, 30)
-    score_streak = round((streak_capped / 30) * 200)
+    score_streak = round((min(current_streak, 30) / 30) * 200)
 
     # ── Signal 4: Category Cap Adherence (0–100) ─────────────────────────────
     capped_cats = [c for c in categories if c.monthly_cap is not None]
     if not capped_cats:
         score_caps = 50  # neutral — not penalised for not setting caps yet
     else:
-        cats_under = sum(
-            1 for c in capped_cats if cat_spent.get(c.id, 0.0) <= c.monthly_cap
-        )
+        cats_under = sum(1 for c in capped_cats if cat_spent.get(c.id, 0.0) <= c.monthly_cap)
         score_caps = round((cats_under / len(capped_cats)) * 100)
 
     total = min(850, max(0, score_discipline + score_saving + score_streak + score_caps))
@@ -122,7 +125,6 @@ def get_pocket_score(
     # ── Tips — pick up to 3, weakest signals first ────────────────────────────
     tips: list[str] = []
 
-    # Discipline tip (highest-impact signal)
     if pct_under < 0.9 and days_elapsed >= 3:
         if pct_under < 0.5:
             tips.append(
@@ -132,11 +134,10 @@ def get_pocket_score(
         else:
             days_short = max(1, round(0.9 * days_elapsed) - days_under)
             tips.append(
-                f"🎯 Stay under your daily limit {days_short} more day(s) this month "
+                f"🎯 Stay under your daily limit {days_short} more day(s) this cycle "
                 "to push your Budget Discipline score higher."
             )
 
-    # Streak tip
     if current_streak == 0:
         tips.append(
             "🔥 Log an expense today that stays under your daily limit — "
@@ -154,12 +155,11 @@ def get_pocket_score(
             "Hit 14 days to max out your Streak Strength points."
         )
 
-    # Savings goal tip
     if wallet.savings_goal > 0 and remaining < wallet.savings_goal and score_goal < 100:
         deficit = max(0, wallet.savings_goal - remaining)
         tips.append(
             f"💰 ₹{round(deficit):,} more in remaining balance would put you "
-            "on track for your savings goal this month."
+            "on track for your savings goal this cycle."
         )
     elif wallet.savings_goal == 0 and score_goal == 0:
         tips.append(
@@ -167,21 +167,19 @@ def get_pocket_score(
             "of your PocketScore."
         )
 
-    # Jar tip
     if wallet.savings_jar == 0 and not wallet.roundup_enabled and len(tips) < 3:
         tips.append(
             "🪙 Enable Round-up saving in Budgets — spare change from each expense "
             "builds your jar and boosts your Saving Rate score."
         )
 
-    # Category cap tip
     if capped_cats:
         over_cap = [c for c in capped_cats if cat_spent.get(c.id, 0.0) > c.monthly_cap]
         if over_cap and len(tips) < 3:
             cat = over_cap[0]
             tips.append(
                 f"📊 '{cat.name}' is over its ₹{round(cat.monthly_cap):,} cap. "
-                "Trimming it this month will lift your Category Adherence score."
+                "Trimming it this cycle will lift your Category Adherence score."
             )
 
     if not tips:

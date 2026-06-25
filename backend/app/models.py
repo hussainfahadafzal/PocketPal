@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, Date, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -34,6 +34,11 @@ class Wallet(Base):
     savings_jar = Column(Float, default=0.0, nullable=False)
     jar_goal_amount = Column(Float, default=0.0, nullable=False)
     jar_goal_name = Column(String, nullable=True)
+
+    # ── Budget cycle ──────────────────────────────────────────────────────────
+    cycle_start_date = Column(Date, nullable=True)   # first day of current cycle
+    next_refill_date = Column(Date, nullable=True)   # last day of current cycle
+    budget_mode = Column(String, nullable=True)      # "date" | "days"
 
     user = relationship("User", back_populates="wallet")
 

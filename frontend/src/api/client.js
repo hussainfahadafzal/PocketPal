@@ -13,14 +13,17 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
-// On 401 (expired/invalid token), clear credentials and send to login.
-// Skip auth endpoints — a 401 there just means wrong password, not a session issue.
+// On 401 (expired/invalid token), clear ALL per-user state then hard-redirect.
+// Skip auth endpoints — a 401 there means wrong password, not a session expiry.
 client.interceptors.response.use(
   (response) => response,
   (error) => {
     const isAuthEndpoint = error.config?.url?.startsWith('/auth/');
     if (error.response?.status === 401 && !isAuthEndpoint) {
       localStorage.removeItem('token');
+      // sessionStorage survives window.location.href redirects in the same tab,
+      // so we must clear it explicitly here too.
+      sessionStorage.removeItem('pocketpal_lastStreak');
       window.location.href = '/login';
     }
     return Promise.reject(error);

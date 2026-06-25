@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -7,7 +7,12 @@ from ..auth import get_current_user
 from ..database import get_db
 from ..models import User, Wallet
 from ..schemas import StreakCalendarResponse, StreakDay
-from ..utils import compute_current_streak, get_daily_spend_limit, get_daily_totals_for_month
+from ..utils import (
+    compute_current_streak,
+    get_cycle_context,
+    get_daily_spend_limit,
+    get_daily_totals_for_cycle,
+)
 
 router = APIRouter(prefix="/streak", tags=["streak"])
 
@@ -18,29 +23,41 @@ def get_streak_calendar(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Return every day so far this month with under_limit status, plus
-    the current consecutive streak count.
+    Return every day so far in the current budget cycle with under_limit status,
+    plus the current consecutive streak count.
 
-    Days with no expenses are treated as ₹0 spend → always under-limit.
-    The daily_limit used is the one calculated as of TODAY (same formula
-    as the dashboard), applied uniformly to all historical days.
+    The response includes cycle_start and cycle_end so the frontend can render
+    the full cycle grid (including future days as ghost cells).
     """
     wallet = db.query(Wallet).filter(Wallet.user_id == current_user.id).first()
     if not wallet:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wallet not set up yet")
 
     today = date.today()
-    daily = get_daily_totals_for_month(db, current_user.id, today.year, today.month)
-    daily_limit = get_daily_spend_limit(wallet, daily, today)
-    current_streak = compute_current_streak(daily, daily_limit, today)
+    ctx = get_cycle_context(wallet, today)
 
+    daily = get_daily_totals_for_cycle(
+        db, current_user.id, ctx["cycle_start"], ctx["effective_today"]
+    )
+    daily_limit = get_daily_spend_limit(wallet, daily, today)
+    current_streak = compute_current_streak(
+        daily, daily_limit, ctx["effective_today"], ctx["cycle_start"]
+    )
+
+    # Build StreakDay entries for cycle_start → effective_today
+    days_elapsed = (ctx["effective_today"] - ctx["cycle_start"]).days + 1
     days = [
         StreakDay(
-            date=date(today.year, today.month, day_num).isoformat(),
-            under_limit=daily.get(date(today.year, today.month, day_num), 0.0) <= daily_limit,
-            is_today=(day_num == today.day),
+            date=(ctx["cycle_start"] + timedelta(days=i)).isoformat(),
+            under_limit=daily.get(ctx["cycle_start"] + timedelta(days=i), 0.0) <= daily_limit,
+            is_today=(ctx["cycle_start"] + timedelta(days=i) == today),
         )
-        for day_num in range(1, today.day + 1)
+        for i in range(days_elapsed)
     ]
 
-    return StreakCalendarResponse(days=days, current_streak=current_streak)
+    return StreakCalendarResponse(
+        days=days,
+        current_streak=current_streak,
+        cycle_start=ctx["cycle_start"].isoformat(),
+        cycle_end=ctx["cycle_end"].isoformat(),
+    )

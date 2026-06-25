@@ -10,7 +10,12 @@ from ..auth import get_current_user
 from ..database import get_db
 from ..models import Expense, User, Wallet
 from ..schemas import ExpenseCreate, ExpenseResponse
-from ..utils import compute_current_streak, get_daily_spend_limit, get_daily_totals_for_month
+from ..utils import (
+    compute_current_streak,
+    get_cycle_context,
+    get_daily_spend_limit,
+    get_daily_totals_for_cycle,
+)
 
 router = APIRouter(prefix="/expenses", tags=["expenses"])
 
@@ -34,9 +39,10 @@ def create_expense(
         if spare > 0:
             today = date.today()
             # Compute streak BEFORE this expense is saved (pre-save totals)
-            daily = get_daily_totals_for_month(db, current_user.id, today.year, today.month)
+            ctx = get_cycle_context(wallet, today)
+            daily = get_daily_totals_for_cycle(db, current_user.id, ctx["cycle_start"], ctx["effective_today"])
             limit = get_daily_spend_limit(wallet, daily, today)
-            streak = compute_current_streak(daily, limit, today)
+            streak = compute_current_streak(daily, limit, ctx["effective_today"], ctx["cycle_start"])
 
             # 2× bonus when streak >= 7 consecutive under-limit days
             if streak >= 7:

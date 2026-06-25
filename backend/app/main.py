@@ -35,10 +35,13 @@ def _migrate():
             row[1] for row in conn.execute(text("PRAGMA table_info(wallets)"))
         }
         new_wallet_cols = [
-            ("roundup_enabled", "BOOLEAN NOT NULL DEFAULT 0"),
-            ("savings_jar",     "FLOAT    NOT NULL DEFAULT 0.0"),
-            ("jar_goal_amount", "FLOAT    NOT NULL DEFAULT 0.0"),
-            ("jar_goal_name",   "VARCHAR"),
+            ("roundup_enabled",  "BOOLEAN NOT NULL DEFAULT 0"),
+            ("savings_jar",      "FLOAT    NOT NULL DEFAULT 0.0"),
+            ("jar_goal_amount",  "FLOAT    NOT NULL DEFAULT 0.0"),
+            ("jar_goal_name",    "VARCHAR"),
+            ("cycle_start_date", "DATE"),
+            ("next_refill_date", "DATE"),
+            ("budget_mode",      "VARCHAR"),
         ]
         for col, definition in new_wallet_cols:
             if col not in existing_wallet_cols:

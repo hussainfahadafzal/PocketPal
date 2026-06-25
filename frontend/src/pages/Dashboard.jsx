@@ -35,16 +35,27 @@ const cardVariants = {
 
 // ── Hero Card ─────────────────────────────────────────────────────────
 function HeroCard({ stats, animatedLimit }) {
+  const expired = stats.cycle_expired;
+  const refillDate = stats.next_refill_date;
+
+  const refillLabel = refillDate
+    ? new Date(refillDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+    : null;
+
   return (
     <motion.div variants={cardVariants}>
       <div
         className="rounded-3xl p-6 relative overflow-hidden"
         style={{
-          background: 'linear-gradient(140deg, #3B6CFF 0%, #5B3CF5 45%, #7C28D9 100%)',
-          boxShadow: '0 28px 72px -12px rgba(59,108,255,0.60), 0 12px 36px -10px rgba(109,40,217,0.40)',
+          background: expired
+            ? 'linear-gradient(140deg, #374151 0%, #1F2937 100%)'
+            : 'linear-gradient(140deg, #3B6CFF 0%, #5B3CF5 45%, #7C28D9 100%)',
+          boxShadow: expired
+            ? '0 16px 48px -12px rgba(0,0,0,0.4)'
+            : '0 28px 72px -12px rgba(59,108,255,0.60), 0 12px 36px -10px rgba(109,40,217,0.40)',
+          transition: 'background 0.4s ease, box-shadow 0.4s ease',
         }}
       >
-        {/* Ambient glow blobs */}
         <div
           className="absolute -top-12 -right-12 w-56 h-56 rounded-full"
           style={{ background: 'radial-gradient(circle, rgba(167,139,250,0.35) 0%, transparent 70%)', filter: 'blur(24px)' }}
@@ -56,12 +67,10 @@ function HeroCard({ stats, animatedLimit }) {
           aria-hidden
         />
 
-        {/* Label */}
         <p className="text-white/60 text-xs font-semibold uppercase tracking-[0.14em] mb-5 relative z-10">
-          Today's spend limit
+          {expired ? 'Budget cycle ended' : "Today's spend limit"}
         </p>
 
-        {/* Big number */}
         <div className="relative z-10 mb-4">
           <p
             className="font-display font-bold text-white leading-none"
@@ -77,15 +86,26 @@ function HeroCard({ stats, animatedLimit }) {
           </p>
         </div>
 
-        {/* Sub-stats row */}
         <div className="flex items-center gap-2 relative z-10 flex-wrap">
           <span className="text-white/50 text-sm font-medium">
             ₹{inr(stats.balance_left)} left
           </span>
           <span className="w-1 h-1 rounded-full bg-white/30 shrink-0" />
-          <span className="text-white/50 text-sm font-medium">
-            {stats.days_left_in_month} day{stats.days_left_in_month !== 1 ? 's' : ''} to go
-          </span>
+          {expired ? (
+            <span className="text-amber-300/70 text-sm font-medium">Tap Budgets to reset</span>
+          ) : (
+            <>
+              <span className="text-white/50 text-sm font-medium">
+                {stats.days_left_in_month} day{stats.days_left_in_month !== 1 ? 's' : ''} to go
+              </span>
+              {refillLabel && (
+                <>
+                  <span className="w-1 h-1 rounded-full bg-white/30 shrink-0" />
+                  <span className="text-white/40 text-sm">resets {refillLabel}</span>
+                </>
+              )}
+            </>
+          )}
         </div>
       </div>
     </motion.div>
@@ -328,6 +348,29 @@ export default function Dashboard() {
             Hey, {firstName} 👋
           </h1>
         </motion.div>
+
+        {/* ── Cycle expired banner ── */}
+        {stats.cycle_expired && (
+          <motion.div variants={cardVariants}>
+            <div
+              className="rounded-3xl px-5 py-4 flex items-center gap-4 cursor-pointer active:opacity-80"
+              style={{
+                background: 'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(249,115,22,0.08) 100%)',
+                border: '1px solid rgba(245,158,11,0.30)',
+              }}
+              onClick={() => navigate('/budgets')}
+            >
+              <span className="text-2xl shrink-0">💰</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-warn text-sm font-semibold leading-none mb-1">New money in?</p>
+                <p className="text-muted text-xs">Your budget cycle ended — tap to reset.</p>
+              </div>
+              <svg className="w-4 h-4 text-muted/40 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </motion.div>
+        )}
 
         {/* ── Hero ── */}
         <HeroCard stats={stats} animatedLimit={animatedLimit} />

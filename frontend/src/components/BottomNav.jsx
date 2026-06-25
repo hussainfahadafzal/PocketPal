@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const tabs = [
@@ -47,11 +48,20 @@ export default function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  return (
+  // Use a portal so the nav renders directly in document.body, immune to any
+  // ancestor's CSS transform / filter that would break position:fixed containment.
+  // (The `page-enter` animation on page wrappers creates exactly such a context.)
+  return createPortal(
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40"
-      style={{ background: 'rgba(13, 18, 37, 0.92)', backdropFilter: 'blur(20px)',
-               paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      className="fixed bottom-0 left-0 right-0 z-50"
+      style={{
+        background: 'rgba(10, 14, 30, 0.96)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        borderTop: '1px solid rgba(59,108,255,0.12)',
+        boxShadow: '0 -4px 24px rgba(0,0,0,0.35)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}
     >
       <div className="max-w-sm mx-auto flex">
         {tabs.map((tab) => {
@@ -100,6 +110,7 @@ export default function BottomNav() {
           );
         })}
       </div>
-    </nav>
+    </nav>,
+    document.body
   );
 }

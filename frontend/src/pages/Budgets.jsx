@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import client from '../api/client';
 import Button from '../components/Button';
 import Card from '../components/Card';
@@ -25,6 +25,26 @@ function currentMonth() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+function tomorrowISO() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().split('T')[0];
+}
+
+function fmtDate(isoStr) {
+  return new Date(isoStr + 'T00:00:00').toLocaleDateString('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  });
+}
+
+function computedEndFromDays(days) {
+  if (!days || isNaN(days) || parseInt(days, 10) < 1) return null;
+  const d = new Date();
+  d.setDate(d.getDate() + parseInt(days, 10));
+  return d.toISOString().split('T')[0];
+}
+
+// ── Small helpers ──────────────────────────────────────────────────────────────
 function TrashIcon() {
   return (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,9 +65,7 @@ function RupeeInput({ label, value, onChange, placeholder = '0', error }) {
           ₹
         </span>
         <input
-          type="number"
-          min="0"
-          value={value}
+          type="number" min="0" value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           className={`w-full bg-surface-2 border ${error ? 'border-danger' : 'border-border'}
@@ -68,7 +86,6 @@ function SectionLabel({ children }) {
   );
 }
 
-// ── Pill toggle switch ────────────────────────────────────────────────────────
 function Toggle({ enabled, onToggle, disabled }) {
   return (
     <motion.button
@@ -95,6 +112,79 @@ function Toggle({ enabled, onToggle, disabled }) {
   );
 }
 
+// ── Cycle mode form (reused in reset) ─────────────────────────────────────────
+function CycleModeForm({ mode, setMode, days, setDays, refillDate, setRefillDate, error }) {
+  const previewEnd = mode === 'days' ? computedEndFromDays(days) : refillDate;
+  return (
+    <div className="flex flex-col gap-3">
+      <div
+        className="flex rounded-xl overflow-hidden"
+        style={{ border: '1px solid rgba(30,45,78,0.7)' }}
+      >
+        {[
+          { key: 'days', label: 'Last me X days' },
+          { key: 'date', label: 'Until a date' },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setMode(key)}
+            className="flex-1 py-2.5 text-xs font-semibold transition-all duration-200"
+            style={mode === key ? {
+              background: 'linear-gradient(135deg, #3B6CFF 0%, #8B5CF6 100%)',
+              color: '#fff',
+            } : {
+              background: 'rgba(13,18,37,0.6)',
+              color: '#7A8BAD',
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {mode === 'days' ? (
+        <div>
+          <input
+            type="number" min="1" max="366"
+            placeholder="e.g. 30"
+            value={days}
+            onChange={(e) => setDays(e.target.value)}
+            className={`w-full bg-surface-2 border ${error ? 'border-danger' : 'border-border'}
+              rounded-xl px-4 py-3 text-text text-sm outline-none
+              focus:border-primary transition-all duration-150 placeholder:text-muted/30`}
+          />
+          {previewEnd && (
+            <p className="text-muted text-xs mt-1.5">
+              Budget lasts until <span className="text-text/70 font-medium">{fmtDate(previewEnd)}</span>
+            </p>
+          )}
+        </div>
+      ) : (
+        <div>
+          <input
+            type="date"
+            min={tomorrowISO()}
+            value={refillDate}
+            onChange={(e) => setRefillDate(e.target.value)}
+            className={`w-full bg-surface-2 border ${error ? 'border-danger' : 'border-border'}
+              rounded-xl px-4 py-3 text-text text-sm outline-none
+              focus:border-primary transition-all duration-150`}
+          />
+          {refillDate && (
+            <p className="text-muted text-xs mt-1.5">
+              {Math.ceil((new Date(refillDate + 'T00:00:00') - new Date()) / 86400000)} days to go
+            </p>
+          )}
+        </div>
+      )}
+
+      {error && <p className="text-xs text-danger">{error}</p>}
+    </div>
+  );
+}
+
+// ── Main Budgets page ─────────────────────────────────────────────────────────
 export default function Budgets() {
   // ── wallet form ──────────────────────────────────────────────────────────
   const [wallet, setWallet]           = useState({ monthly_balance: '', savings_goal: '', goal_name: '' });
@@ -102,10 +192,20 @@ export default function Budgets() {
   const [walletStatus, setWalletStatus]   = useState(null);
   const [walletErrors, setWalletErrors]   = useState({});
 
+  // ── cycle info ───────────────────────────────────────────────────────────
+  const [cycleInfo, setCycleInfo]       = useState(null);
+  const [showResetForm, setShowResetForm] = useState(false);
+  const [resetMode, setResetMode]       = useState('days');
+  const [resetDays, setResetDays]       = useState('30');
+  const [resetDate, setResetDate]       = useState('');
+  const [resetBalance, setResetBalance] = useState('');
+  const [resetSaving, setResetSaving]   = useState(false);
+  const [resetStatus, setResetStatus]   = useState(null);
+  const [resetError, setResetError]     = useState('');
+
   // ── round-up toggle ──────────────────────────────────────────────────────
   const [roundupEnabled, setRoundupEnabled] = useState(false);
   const [roundupToggling, setRoundupToggling] = useState(false);
-  // bump to force SavingsJarCard re-fetch after roundup or goal changes
   const [jarRefetchKey, setJarRefetchKey]   = useState(0);
 
   // ── jar goal form ────────────────────────────────────────────────────────
@@ -134,6 +234,14 @@ export default function Budgets() {
         setRoundupEnabled(res.data.roundup_enabled ?? false);
         setJarGoalName(res.data.jar_goal_name     ?? '');
         setJarGoalAmount(res.data.jar_goal_amount ? String(res.data.jar_goal_amount) : '');
+        setCycleInfo({
+          next_refill_date: res.data.next_refill_date ?? null,
+          cycle_expired:    res.data.cycle_expired    ?? false,
+          days_left:        res.data.days_left        ?? 0,
+          budget_mode:      res.data.budget_mode      ?? null,
+        });
+        // Auto-open reset form if cycle is expired
+        if (res.data.cycle_expired) setShowResetForm(true);
       })
       .catch(() => {});
 
@@ -154,7 +262,7 @@ export default function Budgets() {
     client.get('/categories').then((res) => setCategories(res.data)).catch(() => {});
   }
 
-  // ── Wallet save ──────────────────────────────────────────────────────────
+  // ── Wallet save (balance/goal update — does NOT reset cycle) ─────────────
   async function saveWallet() {
     const errs = {};
     const bal  = parseFloat(wallet.monthly_balance);
@@ -184,6 +292,49 @@ export default function Budgets() {
     }
   }
 
+  // ── Cycle reset ──────────────────────────────────────────────────────────
+  async function resetCycle() {
+    const bal = parseFloat(resetBalance) || parseFloat(wallet.monthly_balance);
+    if (!bal || isNaN(bal) || bal <= 0) { setResetError('Enter your new balance'); return; }
+    if (resetMode === 'days') {
+      const d = parseInt(resetDays, 10);
+      if (!resetDays || isNaN(d) || d < 1) { setResetError('Enter at least 1 day'); return; }
+    } else {
+      if (!resetDate) { setResetError('Pick a refill date'); return; }
+    }
+    setResetError('');
+    setResetSaving(true);
+    setResetStatus(null);
+    try {
+      const body = {
+        monthly_balance: bal,
+        savings_goal:    parseFloat(wallet.savings_goal) || 0,
+        goal_name:       wallet.goal_name.trim() || null,
+      };
+      if (resetMode === 'days') {
+        body.number_of_days = parseInt(resetDays, 10);
+      } else {
+        body.next_refill_date = resetDate;
+      }
+      const res = await client.post('/wallet', body);
+      setWallet((w) => ({ ...w, monthly_balance: String(bal) }));
+      setCycleInfo({
+        next_refill_date: res.data.next_refill_date ?? null,
+        cycle_expired:    false,
+        days_left:        res.data.days_left ?? 0,
+        budget_mode:      res.data.budget_mode ?? null,
+      });
+      setResetBalance('');
+      setResetStatus('ok');
+      setShowResetForm(false);
+      setTimeout(() => setResetStatus(null), 2500);
+    } catch (err) {
+      setResetError(err.response?.data?.detail || 'Could not reset. Try again.');
+    } finally {
+      setResetSaving(false);
+    }
+  }
+
   // ── Round-up toggle ──────────────────────────────────────────────────────
   async function toggleRoundup() {
     setRoundupToggling(true);
@@ -192,7 +343,6 @@ export default function Budgets() {
       setRoundupEnabled(res.data.roundup_enabled);
       setJarRefetchKey((k) => k + 1);
     } catch {
-      // silent — UI already shows the last known state
     } finally {
       setRoundupToggling(false);
     }
@@ -226,9 +376,7 @@ export default function Budgets() {
     setCatAdding(true);
     try {
       await client.post('/categories', {
-        name:        newCat.name.trim(),
-        monthly_cap: parseFloat(newCat.monthly_cap) || null,
-        color:       newCat.color,
+        name: newCat.name.trim(), monthly_cap: parseFloat(newCat.monthly_cap) || null, color: newCat.color,
       });
       setNewCat({ name: '', monthly_cap: '', color: PALETTE[0].hex });
       loadCategories();
@@ -258,13 +406,134 @@ export default function Budgets() {
 
         <h1 className="font-heading text-2xl font-semibold text-text">Budgets</h1>
 
+        {/* ── Budget Cycle ─────────────────────────────────────────────── */}
+        <section>
+          <SectionLabel>Budget Cycle</SectionLabel>
+
+          <div
+            className="rounded-3xl p-5"
+            style={{
+              background: cycleInfo?.cycle_expired
+                ? 'linear-gradient(135deg, rgba(245,158,11,0.10) 0%, rgba(249,115,22,0.07) 100%)'
+                : 'rgba(13,18,37,0.8)',
+              border: cycleInfo?.cycle_expired
+                ? '1px solid rgba(245,158,11,0.35)'
+                : '1px solid rgba(30,45,78,0.6)',
+              transition: 'background 0.3s ease, border-color 0.3s ease',
+            }}
+          >
+            {cycleInfo?.next_refill_date ? (
+              <>
+                {cycleInfo.cycle_expired ? (
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-2xl shrink-0">⏰</span>
+                    <div>
+                      <p className="text-warn text-sm font-semibold">Budget cycle ended</p>
+                      <p className="text-muted text-xs mt-0.5">
+                        New money in? Start a fresh cycle below.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-muted text-xs font-semibold uppercase tracking-[0.08em] mb-1">
+                        Current cycle
+                      </p>
+                      <p className="text-text text-sm font-medium">
+                        Ends {fmtDate(cycleInfo.next_refill_date)}
+                      </p>
+                      <p className="text-muted text-xs mt-0.5">
+                        {cycleInfo.days_left} day{cycleInfo.days_left !== 1 ? 's' : ''} remaining
+                      </p>
+                    </div>
+                    <div
+                      className="rounded-2xl px-3 py-1.5 text-xs font-bold"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(59,108,255,0.15) 0%, rgba(139,92,246,0.12) 100%)',
+                        border: '1px solid rgba(59,108,255,0.25)',
+                        color: '#3B6CFF',
+                      }}
+                    >
+                      {cycleInfo.days_left}d left
+                    </div>
+                  </div>
+                )}
+
+                {/* Reset button */}
+                <button
+                  onClick={() => setShowResetForm((s) => !s)}
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95"
+                  style={{
+                    background: showResetForm
+                      ? 'rgba(59,108,255,0.15)'
+                      : 'rgba(30,45,78,0.5)',
+                    border: '1px solid rgba(59,108,255,0.25)',
+                    color: '#7A8BAD',
+                  }}
+                >
+                  {showResetForm ? 'Cancel reset' : '💰 Got new money? Reset cycle'}
+                </button>
+
+                {resetStatus === 'ok' && (
+                  <p className="text-success text-xs text-center mt-2">Cycle reset ✓</p>
+                )}
+              </>
+            ) : (
+              <div>
+                <p className="text-muted text-sm mb-3">No budget cycle set yet.</p>
+              </div>
+            )}
+
+            {/* ── Inline reset form ── */}
+            <AnimatePresence>
+              {showResetForm && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  <div
+                    className="mt-4 pt-4 flex flex-col gap-4"
+                    style={{ borderTop: '1px solid rgba(30,45,78,0.6)' }}
+                  >
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted">
+                      Start a new cycle
+                    </p>
+                    <RupeeInput
+                      label="How much do you have now?"
+                      value={resetBalance}
+                      onChange={setResetBalance}
+                      placeholder={String(wallet.monthly_balance || '0')}
+                    />
+                    <CycleModeForm
+                      mode={resetMode}
+                      setMode={setResetMode}
+                      days={resetDays}
+                      setDays={setResetDays}
+                      refillDate={resetDate}
+                      setRefillDate={setResetDate}
+                      error={resetError}
+                    />
+                    <Button onClick={resetCycle} loading={resetSaving}>
+                      Reset budget cycle
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </section>
+
         {/* ── Monthly wallet ───────────────────────────────────────────── */}
         <section>
-          <SectionLabel>Monthly Wallet</SectionLabel>
+          <SectionLabel>Wallet Settings</SectionLabel>
           <Card>
             <div className="flex flex-col gap-4">
               <RupeeInput
-                label="Monthly budget"
+                label="Current budget"
                 value={wallet.monthly_balance}
                 onChange={(v) => setWallet((w) => ({ ...w, monthly_balance: v }))}
                 error={walletErrors.monthly_balance}
@@ -282,7 +551,7 @@ export default function Budgets() {
                 onChange={(e) => setWallet((w) => ({ ...w, goal_name: e.target.value }))}
               />
               <Button onClick={saveWallet} loading={walletSaving}>
-                {walletStatus === 'ok' ? 'Saved ✓' : 'Save wallet'}
+                {walletStatus === 'ok' ? 'Saved ✓' : 'Save settings'}
               </Button>
               {walletStatus === 'err' && (
                 <p className="text-danger text-xs text-center">Could not save. Try again.</p>
@@ -295,7 +564,6 @@ export default function Budgets() {
         <section>
           <SectionLabel>Savings Jar</SectionLabel>
 
-          {/* Round-up toggle card */}
           <div
             className="rounded-3xl p-5 mb-4"
             style={{
@@ -315,39 +583,28 @@ export default function Budgets() {
                   <p className="text-text text-sm font-semibold">Round-up saving</p>
                 </div>
                 <p className="text-muted text-xs leading-relaxed">
-                  We round each spend up to ₹10 and stash the spare in your jar.
-                  {' '}
-                  <span
-                    className="font-semibold"
-                    style={{
-                      background: 'linear-gradient(135deg, #EC4899 0%, #F97316 100%)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text',
-                    }}
-                  >
+                  We round each spend up to ₹10 and stash the spare in your jar.{' '}
+                  <span style={{
+                    background: 'linear-gradient(135deg, #EC4899 0%, #F97316 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    fontWeight: 600,
+                  }}>
                     Hit a 7-day streak and every round-up doubles!
                   </span>
                 </p>
               </div>
-              <Toggle
-                enabled={roundupEnabled}
-                onToggle={toggleRoundup}
-                disabled={roundupToggling}
-              />
+              <Toggle enabled={roundupEnabled} onToggle={toggleRoundup} disabled={roundupToggling} />
             </div>
           </div>
 
-          {/* Jar state card */}
           <div className="mb-4">
             <SavingsJarCard alwaysShow refetchKey={jarRefetchKey} />
           </div>
 
-          {/* Jar goal form */}
           <Card>
-            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted mb-4">
-              Set jar goal
-            </p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted mb-4">Set jar goal</p>
             <div className="flex flex-col gap-4">
               <Input
                 label="Goal name"
@@ -376,7 +633,6 @@ export default function Budgets() {
         <section className="pb-2">
           <SectionLabel>Categories</SectionLabel>
 
-          {/* Add form */}
           <Card className="mb-4">
             <div className="flex flex-col gap-4">
               <div className="flex gap-2">
@@ -395,9 +651,7 @@ export default function Budgets() {
                 <div className="w-[88px] relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm pointer-events-none select-none">₹</span>
                   <input
-                    type="number"
-                    min="0"
-                    placeholder="Cap"
+                    type="number" min="0" placeholder="Cap"
                     value={newCat.monthly_cap}
                     onChange={(e) => setNewCat((c) => ({ ...c, monthly_cap: e.target.value }))}
                     className="w-full bg-surface-2 border border-border rounded-xl pl-7 pr-2 py-3
@@ -407,7 +661,6 @@ export default function Budgets() {
                 </div>
               </div>
 
-              {/* Color swatches */}
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted mb-2.5">Color</p>
                 <div className="flex gap-2.5">
@@ -418,13 +671,10 @@ export default function Budgets() {
                       className="w-7 h-7 rounded-full transition-transform duration-150 hover:scale-110 active:scale-95"
                       style={{
                         backgroundColor: hex,
-                        boxShadow: newCat.color === hex
-                          ? `0 0 0 2px #16233D, 0 0 0 4px ${hex}`
-                          : 'none',
+                        boxShadow: newCat.color === hex ? `0 0 0 2px #16233D, 0 0 0 4px ${hex}` : 'none',
                         transform: newCat.color === hex ? 'scale(1.15)' : undefined,
                       }}
                       aria-label={name}
-                      aria-pressed={newCat.color === hex}
                     />
                   ))}
                 </div>
@@ -435,7 +685,6 @@ export default function Budgets() {
             </div>
           </Card>
 
-          {/* Category list */}
           {categories.length === 0 ? (
             <div className="text-center py-10">
               <p className="text-text text-sm font-medium">No categories yet</p>
@@ -444,11 +693,11 @@ export default function Budgets() {
           ) : (
             <div className="flex flex-col gap-3">
               {categories.map((cat) => {
-                const spent    = catSpent[cat.id] || 0;
-                const hasCap   = cat.monthly_cap != null;
-                const pct      = hasCap ? Math.min((spent / cat.monthly_cap) * 100, 100) : 0;
-                const isOver   = hasCap && spent > cat.monthly_cap;
-                const isNear   = hasCap && !isOver && pct >= 80;
+                const spent  = catSpent[cat.id] || 0;
+                const hasCap = cat.monthly_cap != null;
+                const pct    = hasCap ? Math.min((spent / cat.monthly_cap) * 100, 100) : 0;
+                const isOver = hasCap && spent > cat.monthly_cap;
+                const isNear = hasCap && !isOver && pct >= 80;
                 const barColor = isOver ? '#EF4444' : isNear ? '#F59E0B' : (cat.color ?? '#3B6CFF');
                 const delPending = pendingDelete === cat.id;
 
@@ -461,41 +710,21 @@ export default function Budgets() {
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div
-                          className="w-2.5 h-2.5 rounded-full shrink-0"
-                          style={{ backgroundColor: cat.color ?? '#94A3B8' }}
-                        />
+                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color ?? '#94A3B8' }} />
                         <span className="text-text text-sm font-medium truncate">{cat.name}</span>
-                        {isOver && (
-                          <span className="text-danger text-[10px] font-bold uppercase tracking-wide shrink-0">
-                            over
-                          </span>
-                        )}
+                        {isOver && <span className="text-danger text-[10px] font-bold uppercase tracking-wide shrink-0">over</span>}
                       </div>
-
                       {delPending ? (
                         <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            onClick={() => deleteCategory(cat.id)}
-                            className="text-danger text-xs font-semibold px-2.5 py-1 rounded-lg
-                              bg-danger/10 hover:bg-danger/20 active:scale-95 transition-all duration-150"
-                          >
+                          <button onClick={() => deleteCategory(cat.id)} className="text-danger text-xs font-semibold px-2.5 py-1 rounded-lg bg-danger/10 hover:bg-danger/20 active:scale-95 transition-all duration-150">
                             Delete
                           </button>
-                          <button
-                            onClick={() => setPendingDelete(null)}
-                            className="text-muted text-xs hover:text-text transition-colors"
-                          >
+                          <button onClick={() => setPendingDelete(null)} className="text-muted text-xs hover:text-text transition-colors">
                             Cancel
                           </button>
                         </div>
                       ) : (
-                        <button
-                          onClick={() => setPendingDelete(cat.id)}
-                          className="text-muted/40 hover:text-danger p-1 rounded-lg
-                            hover:bg-danger/10 active:scale-95 transition-all duration-150 shrink-0"
-                          aria-label="Delete category"
-                        >
+                        <button onClick={() => setPendingDelete(cat.id)} className="text-muted/40 hover:text-danger p-1 rounded-lg hover:bg-danger/10 active:scale-95 transition-all duration-150 shrink-0" aria-label="Delete category">
                           <TrashIcon />
                         </button>
                       )}
@@ -504,16 +733,11 @@ export default function Budgets() {
                     {hasCap ? (
                       <>
                         <div className="w-full h-1.5 bg-surface-2 rounded-full overflow-hidden mb-2">
-                          <div
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{ width: `${pct}%`, backgroundColor: barColor }}
-                          />
+                          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: barColor }} />
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted text-xs">₹{inr(spent)} spent</span>
-                          <span className={`text-xs ${isOver ? 'text-danger font-medium' : 'text-muted'}`}>
-                            of ₹{inr(cat.monthly_cap)}
-                          </span>
+                          <span className={`text-xs ${isOver ? 'text-danger font-medium' : 'text-muted'}`}>of ₹{inr(cat.monthly_cap)}</span>
                         </div>
                       </>
                     ) : (
