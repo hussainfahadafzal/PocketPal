@@ -104,7 +104,6 @@ export default function History() {
       await client.delete(`/expenses/${id}`);
       setExpenses((prev) => prev.filter((e) => e.id !== id));
     } catch {
-      // keep item visible; user can retry
     } finally {
       setPendingDelete(null);
     }

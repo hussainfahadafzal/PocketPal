@@ -31,9 +31,6 @@ function cycleDateLabel(start, end) {
   return `${s.toLocaleDateString('en-IN', opts)} – ${e.toLocaleDateString('en-IN', opts)}`;
 }
 
-/**
- * celebrateKey – bump to trigger streak-bump + glow animation.
- */
 export default function StreakCalendar({ celebrateKey = 0 }) {
   const [data, setData] = useState(null);
   const [glowing, setGlowing] = useState(false);

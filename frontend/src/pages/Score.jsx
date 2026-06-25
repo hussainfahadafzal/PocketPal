@@ -6,7 +6,6 @@ import TopBar from '../components/TopBar';
 import Spinner from '../components/Spinner';
 import { useCountUp } from '../hooks/useCountUp';
 
-// ── Gauge constants ──────────────────────────────────────────────────────────
 const CX = 100;
 const CY = 100;
 const R  = 76;
@@ -200,7 +199,7 @@ export default function Score() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-bg pb-28">
+    <div className="min-h-screen bg-bg pb-28 page-enter">
       <TopBar showLogout />
 
       <motion.div

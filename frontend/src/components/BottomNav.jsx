@@ -48,9 +48,6 @@ export default function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Use a portal so the nav renders directly in document.body, immune to any
-  // ancestor's CSS transform / filter that would break position:fixed containment.
-  // (The `page-enter` animation on page wrappers creates exactly such a context.)
   return createPortal(
     <nav
       className="fixed bottom-0 left-0 right-0 z-50"

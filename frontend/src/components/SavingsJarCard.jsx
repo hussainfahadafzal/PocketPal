@@ -12,15 +12,8 @@ const GRAD_TEXT = {
   backgroundClip: 'text',
 };
 
-/**
- * alwaysShow – show even when jar is empty (Budgets page context).
- *              Default false: hide on Dashboard until there's something in the jar.
- * refetchKey  – bump this number to force a data refresh (e.g. after toggling roundup).
- * spareFly    – the roundup spare (₹) just added; triggers a "+₹X" float animation.
- */
 export default function SavingsJarCard({ alwaysShow = false, refetchKey = 0, spareFly = 0 }) {
   const [data, setData] = useState(null);
-  // flyKey increments each time a new spare arrives, remounting the fly element.
   const [flyKey, setFlyKey] = useState(0);
   const prevSpareRef = useRef(0);
 
@@ -102,7 +95,6 @@ export default function SavingsJarCard({ alwaysShow = false, refetchKey = 0, spa
           ₹{animJar.toLocaleString('en-IN')}
         </p>
 
-        {/* +₹X float-up — keyed so each new spare remounts and replays */}
         <AnimatePresence>
           {flyKey > 0 && (
             <motion.div

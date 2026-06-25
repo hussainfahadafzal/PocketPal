@@ -55,6 +55,7 @@ export default function Analysis() {
   const [nudges, setNudges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     setLoading(true);
@@ -69,7 +70,7 @@ export default function Analysis() {
       })
       .catch(() => setError('Could not load analysis. Try refreshing.'))
       .finally(() => setLoading(false));
-  }, [month]);
+  }, [month, retryCount]);
 
   useEffect(() => {
     client.get('/pal/nudges').then((res) => setNudges(res.data)).catch(() => {});
@@ -147,7 +148,7 @@ export default function Analysis() {
           <div className="text-center pt-16">
             <p className="text-danger text-sm mb-3">{error}</p>
             <button
-              onClick={() => setMonth((m) => { /* force re-fetch */ return m; })}
+              onClick={() => setRetryCount((c) => c + 1)}
               className="text-primary text-sm font-medium underline underline-offset-2 active:opacity-70"
             >
               Tap to retry

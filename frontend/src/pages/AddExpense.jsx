@@ -43,7 +43,6 @@ function ConfirmScreen({ amount, savedExpense, onDone }) {
 
   return (
     <div className="min-h-screen bg-bg flex flex-col page-enter">
-      {/* Minimal header */}
       <header className="h-14 flex items-center px-4 border-b border-border/40">
         <span className="font-heading font-bold text-text text-base tracking-tight select-none">PocketPal</span>
       </header>
@@ -170,7 +169,6 @@ export default function AddExpense() {
 
   return (
     <div className="min-h-screen bg-bg pb-28 page-enter">
-      {/* Page header with back button */}
       <header className="sticky top-0 z-40 bg-bg/95 backdrop-blur-sm border-b border-border/40">
         <div className="max-w-sm mx-auto px-4 h-14 flex items-center gap-3">
           <button
@@ -192,7 +190,6 @@ export default function AddExpense() {
         <Card>
           <div className="flex flex-col gap-5">
 
-            {/* Amount — the main field */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Amount</label>
               <div className="relative">
@@ -217,7 +214,6 @@ export default function AddExpense() {
               {errors.amount && <p className="text-xs text-danger">{errors.amount}</p>}
             </div>
 
-            {/* Category */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Category</label>
               <div className="relative">
@@ -246,7 +242,6 @@ export default function AddExpense() {
               </div>
             </div>
 
-            {/* Note */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                 Note <span className="normal-case tracking-normal font-normal">(optional)</span>
@@ -271,7 +266,6 @@ export default function AddExpense() {
               Save expense
             </Button>
 
-            {/* UPI quick-pay shown once user has typed an amount */}
             {hasAmount && (
               <div className="border-t border-border pt-4 flex flex-col gap-2">
                 <p className="text-muted text-xs text-center">or pay first, then save</p>
