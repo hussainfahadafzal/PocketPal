@@ -125,22 +125,24 @@ export default function StreakCalendar({ celebrateKey = 0 }) {
               >
                 🔥
               </motion.span>
-              <motion.span
-                animate={numControls}
-                className="font-display font-bold relative z-10"
-                style={{
-                  fontSize: 'clamp(1.9rem, 10vw, 2.4rem)',
-                  letterSpacing: '-0.04em',
-                  background: 'linear-gradient(135deg, #EC4899 0%, #F97316 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                  display: 'inline-block',
-                }}
-              >
-                {animStreak}
-              </motion.span>
-              <span className="text-muted text-sm font-medium relative z-10">-day streak</span>
+              <span className="relative z-10 flex items-baseline gap-0.5">
+                <motion.span
+                  animate={numControls}
+                  className="font-display font-bold"
+                  style={{
+                    fontSize: 'clamp(1.9rem, 10vw, 2.4rem)',
+                    letterSpacing: '-0.04em',
+                    background: 'linear-gradient(135deg, #EC4899 0%, #F97316 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    display: 'inline-block',
+                  }}
+                >
+                  {animStreak}
+                </motion.span>
+                <span className="text-muted text-sm font-medium">-day streak</span>
+              </span>
             </>
           ) : (
             <>
@@ -172,44 +174,54 @@ export default function StreakCalendar({ celebrateKey = 0 }) {
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-[3px]">
           {gridCells.map((cell, idx) => {
             if (!cell) return <div key={`pad-${idx}`} className="aspect-square" />;
 
             const { dayNum, isoDate, future, under_limit, is_today } = cell;
 
-            let bg, numColor, shadow, ringStyle;
+            let cellBg, cellBorder, numColor, cellShadow;
 
             if (future) {
-              bg       = 'rgba(27,37,68,0.22)';
-              numColor = 'rgba(122,139,173,0.12)';
+              cellBg     = 'rgba(59,108,255,0.05)';
+              cellBorder = '1px solid rgba(59,108,255,0.13)';
+              numColor   = 'rgba(122,139,173,0.28)';
             } else if (under_limit) {
-              bg       = 'linear-gradient(135deg, #EC4899 0%, #F97316 100%)';
-              numColor = 'rgba(255,255,255,0.92)';
-              shadow   = '0 2px 8px rgba(236,72,153,0.45)';
+              cellBg     = 'linear-gradient(135deg, #EC4899 0%, #F97316 100%)';
+              cellBorder = 'none';
+              numColor   = 'rgba(255,255,255,0.95)';
+              cellShadow = '0 2px 10px rgba(236,72,153,0.50)';
             } else {
-              bg       = '#141C35';
-              numColor = 'rgba(122,139,173,0.38)';
+              cellBg     = 'rgba(255,255,255,0.055)';
+              cellBorder = '1px solid rgba(255,255,255,0.09)';
+              numColor   = 'rgba(122,139,173,0.52)';
             }
 
             if (is_today) {
-              ringStyle = { outline: '2px solid rgba(255,255,255,0.55)', outlineOffset: '2px' };
+              cellShadow = [cellShadow, '0 0 0 2px rgba(255,255,255,0.72)'].filter(Boolean).join(', ');
             }
 
             return (
               <motion.div
                 key={isoDate}
                 className="aspect-square rounded-lg flex items-center justify-center"
-                style={{ background: bg, boxShadow: shadow, ...ringStyle }}
-                initial={!future ? { opacity: 0, scale: 0.6 } : false}
-                animate={!future ? { opacity: 1, scale: 1 } : undefined}
+                style={{
+                  background: cellBg,
+                  border: cellBorder,
+                  boxShadow: cellShadow,
+                }}
+                initial={!future ? { opacity: 0, scale: 0.55 } : { opacity: 0 }}
+                animate={!future ? { opacity: 1, scale: 1 } : { opacity: 1 }}
                 transition={{
-                  duration: 0.25,
+                  duration: 0.28,
                   ease: 'backOut',
-                  delay: !future ? 0.05 + idx * 0.008 : 0,
+                  delay: !future ? 0.04 + idx * 0.007 : 0.02 + idx * 0.004,
                 }}
               >
-                <span className="text-[9px] font-bold leading-none" style={{ color: numColor }}>
+                <span
+                  className="text-[9px] font-bold leading-none select-none"
+                  style={{ color: numColor }}
+                >
                   {dayNum}
                 </span>
               </motion.div>

@@ -114,38 +114,22 @@ function HeroCard({ stats, animatedLimit }) {
 // ── Badge Pills ────────────────────────────────────────────────────────
 function BadgePills({ stats }) {
   const savedMore = stats.saved_vs_yesterday > 0;
-  if (!savedMore && stats.streak_days === 0) return null;
+  if (!savedMore) return null;
 
   return (
     <motion.div variants={cardVariants} className="flex flex-wrap gap-2">
-      {stats.streak_days > 0 && (
-        <div
-          className="inline-flex items-center gap-2 rounded-full px-4 py-2"
-          style={{
-            background: 'linear-gradient(135deg, rgba(236,72,153,0.14) 0%, rgba(249,115,22,0.14) 100%)',
-            border: '1px solid rgba(236,72,153,0.28)',
-          }}
-        >
-          <span className="text-base leading-none">🔥</span>
-          <span className="text-grad-energy text-xs font-bold">
-            {stats.streak_days}-day streak
-          </span>
-        </div>
-      )}
-      {savedMore && (
-        <div
-          className="inline-flex items-center gap-2 rounded-full px-4 py-2"
-          style={{
-            background: 'linear-gradient(135deg, rgba(16,185,129,0.14) 0%, rgba(6,182,212,0.14) 100%)',
-            border: '1px solid rgba(16,185,129,0.28)',
-          }}
-        >
-          <span className="text-base leading-none">💰</span>
-          <span className="text-grad-success text-xs font-bold">
-            ₹{inr(stats.saved_vs_yesterday)} saved vs yesterday
-          </span>
-        </div>
-      )}
+      <div
+        className="inline-flex items-center gap-2 rounded-full px-4 py-2"
+        style={{
+          background: 'linear-gradient(135deg, rgba(16,185,129,0.14) 0%, rgba(6,182,212,0.14) 100%)',
+          border: '1px solid rgba(16,185,129,0.28)',
+        }}
+      >
+        <span className="text-base leading-none">💰</span>
+        <span className="text-grad-success text-xs font-bold">
+          ₹{inr(stats.saved_vs_yesterday)} saved vs yesterday
+        </span>
+      </div>
     </motion.div>
   );
 }
