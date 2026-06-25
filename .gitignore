@@ -6,3 +6,4 @@ venv/
 dist/
 .vercel/
 .claude/
+.vscode/
