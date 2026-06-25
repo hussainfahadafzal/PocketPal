@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import client from '../api/client';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import Input from '../components/Input';
 import BottomNav from '../components/BottomNav';
 import TopBar from '../components/TopBar';
+import SavingsJarCard from '../components/SavingsJarCard';
 
 const inr = (n) => Math.round(Math.abs(n)).toLocaleString('en-IN');
 
@@ -66,30 +68,73 @@ function SectionLabel({ children }) {
   );
 }
 
-export default function Budgets() {
-  // ── wallet form ──
-  const [wallet, setWallet] = useState({ monthly_balance: '', savings_goal: '', goal_name: '' });
-  const [walletSaving, setWalletSaving] = useState(false);
-  const [walletStatus, setWalletStatus] = useState(null); // 'ok' | 'err'
-  const [walletErrors, setWalletErrors] = useState({});
+// ── Pill toggle switch ────────────────────────────────────────────────────────
+function Toggle({ enabled, onToggle, disabled }) {
+  return (
+    <motion.button
+      onClick={onToggle}
+      disabled={disabled}
+      className="relative shrink-0 w-12 h-6 rounded-full transition-colors duration-300 disabled:opacity-50"
+      style={{
+        background: enabled
+          ? 'linear-gradient(135deg, #3B6CFF 0%, #8B5CF6 100%)'
+          : '#1E2D4E',
+        boxShadow: enabled ? '0 2px 12px rgba(59,108,255,0.45)' : 'none',
+      }}
+      whileTap={!disabled ? { scale: 0.92 } : undefined}
+      aria-checked={enabled}
+      role="switch"
+    >
+      <motion.div
+        className="absolute top-0.5 w-5 h-5 rounded-full bg-white"
+        style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.35)' }}
+        animate={{ x: enabled ? 24 : 2 }}
+        transition={{ type: 'spring', damping: 22, stiffness: 320 }}
+      />
+    </motion.button>
+  );
+}
 
-  // ── categories ──
-  const [categories, setCategories] = useState([]);
-  const [catSpent, setCatSpent] = useState({});
-  const [newCat, setNewCat] = useState({ name: '', monthly_cap: '', color: PALETTE[0].hex });
-  const [catAdding, setCatAdding] = useState(false);
-  const [catError, setCatError] = useState('');
+export default function Budgets() {
+  // ── wallet form ──────────────────────────────────────────────────────────
+  const [wallet, setWallet]           = useState({ monthly_balance: '', savings_goal: '', goal_name: '' });
+  const [walletSaving, setWalletSaving]   = useState(false);
+  const [walletStatus, setWalletStatus]   = useState(null);
+  const [walletErrors, setWalletErrors]   = useState({});
+
+  // ── round-up toggle ──────────────────────────────────────────────────────
+  const [roundupEnabled, setRoundupEnabled] = useState(false);
+  const [roundupToggling, setRoundupToggling] = useState(false);
+  // bump to force SavingsJarCard re-fetch after roundup or goal changes
+  const [jarRefetchKey, setJarRefetchKey]   = useState(0);
+
+  // ── jar goal form ────────────────────────────────────────────────────────
+  const [jarGoalName,   setJarGoalName]   = useState('');
+  const [jarGoalAmount, setJarGoalAmount] = useState('');
+  const [jarGoalSaving, setJarGoalSaving] = useState(false);
+  const [jarGoalStatus, setJarGoalStatus] = useState(null);
+  const [jarGoalError,  setJarGoalError]  = useState('');
+
+  // ── categories ───────────────────────────────────────────────────────────
+  const [categories,   setCategories]  = useState([]);
+  const [catSpent,     setCatSpent]    = useState({});
+  const [newCat,       setNewCat]      = useState({ name: '', monthly_cap: '', color: PALETTE[0].hex });
+  const [catAdding,    setCatAdding]   = useState(false);
+  const [catError,     setCatError]    = useState('');
   const [pendingDelete, setPendingDelete] = useState(null);
 
   useEffect(() => {
     client.get('/wallet')
-      .then((res) =>
+      .then((res) => {
         setWallet({
           monthly_balance: res.data.monthly_balance ?? '',
           savings_goal:    res.data.savings_goal    ?? '',
           goal_name:       res.data.goal_name       ?? '',
-        })
-      )
+        });
+        setRoundupEnabled(res.data.roundup_enabled ?? false);
+        setJarGoalName(res.data.jar_goal_name     ?? '');
+        setJarGoalAmount(res.data.jar_goal_amount ? String(res.data.jar_goal_amount) : '');
+      })
       .catch(() => {});
 
     loadCategories();
@@ -109,9 +154,10 @@ export default function Budgets() {
     client.get('/categories').then((res) => setCategories(res.data)).catch(() => {});
   }
 
+  // ── Wallet save ──────────────────────────────────────────────────────────
   async function saveWallet() {
     const errs = {};
-    const bal = parseFloat(wallet.monthly_balance);
+    const bal  = parseFloat(wallet.monthly_balance);
     const goal = parseFloat(wallet.savings_goal);
     if (!wallet.monthly_balance || isNaN(bal) || bal <= 0)
       errs.monthly_balance = 'Enter a positive amount';
@@ -127,7 +173,7 @@ export default function Budgets() {
       await client.post('/wallet', {
         monthly_balance: bal,
         savings_goal:    parseFloat(wallet.savings_goal) || 0,
-        goal_name:       wallet.goal_name.trim()         || null,
+        goal_name:       wallet.goal_name.trim() || null,
       });
       setWalletStatus('ok');
       setTimeout(() => setWalletStatus(null), 2500);
@@ -138,11 +184,44 @@ export default function Budgets() {
     }
   }
 
-  async function addCategory() {
-    if (!newCat.name.trim()) {
-      setCatError('Category name is required');
-      return;
+  // ── Round-up toggle ──────────────────────────────────────────────────────
+  async function toggleRoundup() {
+    setRoundupToggling(true);
+    try {
+      const res = await client.post('/wallet/roundup');
+      setRoundupEnabled(res.data.roundup_enabled);
+      setJarRefetchKey((k) => k + 1);
+    } catch {
+      // silent — UI already shows the last known state
+    } finally {
+      setRoundupToggling(false);
     }
+  }
+
+  // ── Jar goal save ────────────────────────────────────────────────────────
+  async function saveJarGoal() {
+    const name   = jarGoalName.trim();
+    const amount = parseFloat(jarGoalAmount);
+    if (!name)               { setJarGoalError('Enter a goal name'); return; }
+    if (!amount || amount <= 0) { setJarGoalError('Enter a positive amount'); return; }
+    setJarGoalError('');
+    setJarGoalSaving(true);
+    setJarGoalStatus(null);
+    try {
+      await client.post('/wallet/jar-goal', { jar_goal_name: name, jar_goal_amount: amount });
+      setJarGoalStatus('ok');
+      setJarRefetchKey((k) => k + 1);
+      setTimeout(() => setJarGoalStatus(null), 2500);
+    } catch {
+      setJarGoalStatus('err');
+    } finally {
+      setJarGoalSaving(false);
+    }
+  }
+
+  // ── Categories ───────────────────────────────────────────────────────────
+  async function addCategory() {
+    if (!newCat.name.trim()) { setCatError('Category name is required'); return; }
     setCatError('');
     setCatAdding(true);
     try {
@@ -179,7 +258,7 @@ export default function Budgets() {
 
         <h1 className="font-heading text-2xl font-semibold text-text">Budgets</h1>
 
-        {/* ── Monthly wallet ── */}
+        {/* ── Monthly wallet ───────────────────────────────────────────── */}
         <section>
           <SectionLabel>Monthly Wallet</SectionLabel>
           <Card>
@@ -212,7 +291,88 @@ export default function Budgets() {
           </Card>
         </section>
 
-        {/* ── Categories ── */}
+        {/* ── Savings Jar ──────────────────────────────────────────────── */}
+        <section>
+          <SectionLabel>Savings Jar</SectionLabel>
+
+          {/* Round-up toggle card */}
+          <div
+            className="rounded-3xl p-5 mb-4"
+            style={{
+              background: roundupEnabled
+                ? 'linear-gradient(135deg, rgba(59,108,255,0.12) 0%, rgba(139,92,246,0.10) 100%)'
+                : 'rgba(13,18,37,0.8)',
+              border: roundupEnabled
+                ? '1px solid rgba(59,108,255,0.35)'
+                : '1px solid rgba(30,45,78,0.6)',
+              transition: 'background 0.35s ease, border-color 0.35s ease',
+            }}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-base leading-none">🪙</span>
+                  <p className="text-text text-sm font-semibold">Round-up saving</p>
+                </div>
+                <p className="text-muted text-xs leading-relaxed">
+                  We round each spend up to ₹10 and stash the spare in your jar.
+                  {' '}
+                  <span
+                    className="font-semibold"
+                    style={{
+                      background: 'linear-gradient(135deg, #EC4899 0%, #F97316 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                    }}
+                  >
+                    Hit a 7-day streak and every round-up doubles!
+                  </span>
+                </p>
+              </div>
+              <Toggle
+                enabled={roundupEnabled}
+                onToggle={toggleRoundup}
+                disabled={roundupToggling}
+              />
+            </div>
+          </div>
+
+          {/* Jar state card */}
+          <div className="mb-4">
+            <SavingsJarCard alwaysShow refetchKey={jarRefetchKey} />
+          </div>
+
+          {/* Jar goal form */}
+          <Card>
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted mb-4">
+              Set jar goal
+            </p>
+            <div className="flex flex-col gap-4">
+              <Input
+                label="Goal name"
+                placeholder="e.g. Goa trip, New phone"
+                value={jarGoalName}
+                onChange={(e) => setJarGoalName(e.target.value)}
+              />
+              <RupeeInput
+                label="Target amount"
+                value={jarGoalAmount}
+                onChange={setJarGoalAmount}
+                placeholder="2000"
+                error={jarGoalError}
+              />
+              <Button onClick={saveJarGoal} loading={jarGoalSaving}>
+                {jarGoalStatus === 'ok' ? 'Goal saved ✓' : 'Save jar goal'}
+              </Button>
+              {jarGoalStatus === 'err' && (
+                <p className="text-danger text-xs text-center">Could not save. Try again.</p>
+              )}
+            </div>
+          </Card>
+        </section>
+
+        {/* ── Categories ───────────────────────────────────────────────── */}
         <section className="pb-2">
           <SectionLabel>Categories</SectionLabel>
 
@@ -270,12 +430,8 @@ export default function Budgets() {
                 </div>
               </div>
 
-              {catError && (
-                <p className="text-danger text-xs">{catError}</p>
-              )}
-              <Button onClick={addCategory} loading={catAdding}>
-                Add category
-              </Button>
+              {catError && <p className="text-danger text-xs">{catError}</p>}
+              <Button onClick={addCategory} loading={catAdding}>Add category</Button>
             </div>
           </Card>
 

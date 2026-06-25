@@ -4,7 +4,7 @@ from typing import List, Optional
 from pydantic import BaseModel, EmailStr, Field
 
 
-# --- Auth / User ---
+# ── Auth / User ───────────────────────────────────────────────────────────────
 
 class UserCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
@@ -35,7 +35,7 @@ class TokenData(BaseModel):
     user_id: Optional[int] = None
 
 
-# --- Wallet ---
+# ── Wallet ────────────────────────────────────────────────────────────────────
 
 class WalletCreate(BaseModel):
     monthly_balance: float = Field(default=0.0, ge=0)
@@ -43,14 +43,21 @@ class WalletCreate(BaseModel):
     goal_name: Optional[str] = Field(default=None, max_length=60)
 
 
-class WalletResponse(WalletCreate):
+class WalletResponse(BaseModel):
     id: int
     user_id: int
+    monthly_balance: float
+    savings_goal: float
+    goal_name: Optional[str]
+    roundup_enabled: bool
+    savings_jar: float
+    jar_goal_amount: float
+    jar_goal_name: Optional[str]
 
     model_config = {"from_attributes": True}
 
 
-# --- Category ---
+# ── Category ──────────────────────────────────────────────────────────────────
 
 class CategoryCreate(BaseModel):
     name: str = Field(min_length=1, max_length=50)
@@ -65,7 +72,7 @@ class CategoryResponse(CategoryCreate):
     model_config = {"from_attributes": True}
 
 
-# --- Expense ---
+# ── Expense ───────────────────────────────────────────────────────────────────
 
 class ExpenseCreate(BaseModel):
     amount: float = Field(gt=0)
@@ -73,15 +80,20 @@ class ExpenseCreate(BaseModel):
     category_id: Optional[int] = None
 
 
-class ExpenseResponse(ExpenseCreate):
+class ExpenseResponse(BaseModel):
     id: int
     user_id: int
+    amount: float
+    note: Optional[str]
+    category_id: Optional[int]
     created_at: datetime
+    roundup_spare: Optional[float]
+    roundup_doubled: bool
 
     model_config = {"from_attributes": True}
 
 
-# --- Pal nudges ---
+# ── Pal nudges ────────────────────────────────────────────────────────────────
 
 class Nudge(BaseModel):
     type: str
@@ -89,7 +101,7 @@ class Nudge(BaseModel):
     icon: str
 
 
-# --- Dashboard ---
+# ── Dashboard ─────────────────────────────────────────────────────────────────
 
 class DashboardResponse(BaseModel):
     daily_spend_limit: float
@@ -99,3 +111,35 @@ class DashboardResponse(BaseModel):
     days_left_in_month: int
     saved_vs_yesterday: float
     streak_days: int
+
+
+# ── Streak calendar ───────────────────────────────────────────────────────────
+
+class StreakDay(BaseModel):
+    date: str          # "YYYY-MM-DD"
+    under_limit: bool
+    is_today: bool
+
+
+class StreakCalendarResponse(BaseModel):
+    days: List[StreakDay]
+    current_streak: int
+
+
+# ── Savings jar ───────────────────────────────────────────────────────────────
+
+class RoundupToggleResponse(BaseModel):
+    roundup_enabled: bool
+
+
+class JarGoalRequest(BaseModel):
+    jar_goal_name: str = Field(min_length=1, max_length=60)
+    jar_goal_amount: float = Field(gt=0)
+
+
+class JarResponse(BaseModel):
+    savings_jar: float
+    jar_goal_name: Optional[str]
+    jar_goal_amount: float
+    progress_pct: float   # 0–100; 0 when no goal set
+    double_active: bool   # True when current_streak >= 7 (2× round-up active)

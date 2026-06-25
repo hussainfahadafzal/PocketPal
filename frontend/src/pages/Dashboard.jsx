@@ -1,33 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import Spinner from '../components/Spinner';
 import BottomNav from '../components/BottomNav';
 import TopBar from '../components/TopBar';
-
-// ── Count-up hook ──────────────────────────────────────────────────────
-function useCountUp(target, duration = 1100) {
-  const [display, setDisplay] = useState(0);
-  const rafRef = useRef(null);
-
-  useEffect(() => {
-    if (!target) { setDisplay(0); return; }
-    let startTime = null;
-    const step = (ts) => {
-      if (!startTime) startTime = ts;
-      const t = Math.min((ts - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - t, 4); // quartic ease-out = more "pop" at the end
-      setDisplay(Math.round(eased * target));
-      if (t < 1) rafRef.current = requestAnimationFrame(step);
-    };
-    rafRef.current = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [target, duration]);
-
-  return display;
-}
+import Toast from '../components/Toast';
+import StreakCalendar from '../components/StreakCalendar';
+import SavingsJarCard from '../components/SavingsJarCard';
+import { useCountUp } from '../hooks/useCountUp';
 
 function greetingWord() {
   const h = new Date().getHours();
@@ -222,10 +204,17 @@ function AddFAB({ onClick }) {
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [stats, setStats]   = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]   = useState('');
   const [nudge, setNudge]   = useState(null);
+
+  // ── Celebration state ────────────────────────────────────────────────
+  const [streakCelebKey, setStreakCelebKey] = useState(0); // bump → StreakCalendar animates
+  const [spareFly, setSpareFly]             = useState(0); // > 0 → jar float animation
+  const [show2xToast, setShow2xToast]       = useState(false);
+  const celebrationProcessedRef = useRef(false);
 
   const animatedLimit = useCountUp(stats?.daily_spend_limit ?? 0);
 
@@ -244,6 +233,42 @@ export default function Dashboard() {
       .then((res) => { if (res.data.length) setNudge(res.data[0]); })
       .catch(() => {});
   }, []);
+
+  // ── Process celebration after stats load ─────────────────────────────
+  // Runs once per Dashboard mount. Uses sessionStorage to compare streak
+  // before vs after an expense, so we can detect an increase.
+  useEffect(() => {
+    if (!stats) return;
+    if (celebrationProcessedRef.current) return;
+    celebrationProcessedRef.current = true;
+
+    const lastStreak = parseInt(sessionStorage.getItem('pocketpal_lastStreak') ?? '0', 10);
+    const newStreak  = stats.streak_days ?? 0;
+    sessionStorage.setItem('pocketpal_lastStreak', String(newStreak));
+
+    const celebration = location.state?.celebration;
+    if (!celebration) return;
+
+    // Clear router state immediately so refreshing doesn't replay
+    navigate(location.pathname, { replace: true, state: null });
+
+    // +₹X float in jar card
+    if ((celebration.spare ?? 0) > 0) {
+      setSpareFly(celebration.spare);
+    }
+
+    // Streak bumped? Animate the calendar headline + glow burst
+    if (newStreak > lastStreak && newStreak > 0) {
+      setStreakCelebKey((k) => k + 1);
+
+      // Streak crossed the 7-day 2× threshold for the first time → toast
+      if (newStreak >= 7 && lastStreak < 7) {
+        // Small delay so it doesn't fight the streak bump animation
+        setTimeout(() => setShow2xToast(true), 450);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stats]);
 
   // ── Loading ──────────────────────────────────────────────────────────
   if (loading) {
@@ -281,6 +306,15 @@ export default function Dashboard() {
     <div className="min-h-screen bg-bg pb-28">
       <TopBar showLogout />
 
+      {/* 2× streak unlock toast */}
+      {show2xToast && (
+        <Toast
+          message="7-day streak! Round-up is now 2×. Keep it going!"
+          icon="🔥"
+          onDismiss={() => setShow2xToast(false)}
+        />
+      )}
+
       <motion.div
         className="max-w-sm mx-auto px-4 pt-5 flex flex-col gap-4"
         variants={containerVariants}
@@ -306,6 +340,16 @@ export default function Dashboard() {
 
         {/* ── Stats ── */}
         <QuickStats stats={stats} />
+
+        {/* ── Streak calendar ── */}
+        <motion.div variants={cardVariants}>
+          <StreakCalendar celebrateKey={streakCelebKey} />
+        </motion.div>
+
+        {/* ── Savings jar ── */}
+        <motion.div variants={cardVariants}>
+          <SavingsJarCard spareFly={spareFly} />
+        </motion.div>
 
       </motion.div>
 

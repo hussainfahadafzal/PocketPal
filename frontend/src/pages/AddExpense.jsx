@@ -29,7 +29,7 @@ function CheckCircle() {
   );
 }
 
-function ConfirmScreen({ amount, onDone }) {
+function ConfirmScreen({ amount, savedExpense, onDone }) {
   const [copied, setCopied] = useState(false);
   const mobile = isMobile();
   const upiLink = `upi://pay?pa=${MERCHANT_VPA}&pn=PocketPal&am=${amount}&cu=INR`;
@@ -89,7 +89,15 @@ function ConfirmScreen({ amount, onDone }) {
             )}
           </Card>
 
-          <Button variant="ghost" onClick={onDone}>
+          <Button
+            variant="ghost"
+            onClick={() =>
+              onDone({
+                spare:   savedExpense?.roundup_spare   ?? 0,
+                doubled: savedExpense?.roundup_doubled ?? false,
+              })
+            }
+          >
             Done — back to dashboard
           </Button>
         </div>
@@ -107,6 +115,7 @@ export default function AddExpense() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [savedExpense, setSavedExpense] = useState(null);
 
   useEffect(() => {
     client.get('/categories').then((res) => setCategories(res.data)).catch(() => {});
@@ -127,11 +136,12 @@ export default function AddExpense() {
     setErrors({});
     setLoading(true);
     try {
-      await client.post('/expenses', {
+      const res = await client.post('/expenses', {
         amount:      parseFloat(form.amount),
         category_id: form.categoryId ? parseInt(form.categoryId) : null,
         note:        form.note.trim() || null,
       });
+      setSavedExpense(res.data);
       setSaved(true);
     } catch (err) {
       setErrors({ api: err.response?.data?.detail || 'Could not save. Try again.' });
@@ -144,7 +154,12 @@ export default function AddExpense() {
     return (
       <ConfirmScreen
         amount={form.amount}
-        onDone={() => navigate('/dashboard')}
+        savedExpense={savedExpense}
+        onDone={({ spare, doubled }) =>
+          navigate('/dashboard', {
+            state: { celebration: { spare, doubled } },
+          })
+        }
       />
     );
   }

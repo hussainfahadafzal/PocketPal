@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -29,6 +29,12 @@ class Wallet(Base):
     savings_goal = Column(Float, default=0.0, nullable=False)
     goal_name = Column(String, nullable=True)
 
+    # ── Round-up jar ─────────────────────────────────────────────────────────
+    roundup_enabled = Column(Boolean, default=False, nullable=False)
+    savings_jar = Column(Float, default=0.0, nullable=False)
+    jar_goal_amount = Column(Float, default=0.0, nullable=False)
+    jar_goal_name = Column(String, nullable=True)
+
     user = relationship("User", back_populates="wallet")
 
 
@@ -54,6 +60,10 @@ class Expense(Base):
     amount = Column(Float, nullable=False)
     note = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    # ── Round-up fields (null when roundup was off at creation time) ──────────
+    roundup_spare = Column(Float, nullable=True)
+    roundup_doubled = Column(Boolean, default=False, nullable=False)
 
     user = relationship("User", back_populates="expenses")
     category = relationship("Category", back_populates="expenses")

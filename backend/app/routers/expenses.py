@@ -1,5 +1,6 @@
 import calendar
-from datetime import datetime
+import math
+from datetime import date, datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -7,8 +8,9 @@ from sqlalchemy.orm import Session
 
 from ..auth import get_current_user
 from ..database import get_db
-from ..models import Expense, User
+from ..models import Expense, User, Wallet
 from ..schemas import ExpenseCreate, ExpenseResponse
+from ..utils import compute_current_streak, get_daily_spend_limit, get_daily_totals_for_month
 
 router = APIRouter(prefix="/expenses", tags=["expenses"])
 
@@ -19,7 +21,37 @@ def create_expense(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    expense = Expense(user_id=current_user.id, **payload.model_dump())
+    wallet = db.query(Wallet).filter(Wallet.user_id == current_user.id).first()
+
+    roundup_spare: Optional[float] = None
+    roundup_doubled: bool = False
+
+    if wallet and wallet.roundup_enabled:
+        # Round up to the next multiple of ₹10
+        next_10 = math.ceil(payload.amount / 10) * 10
+        spare = round(next_10 - payload.amount, 2)
+
+        if spare > 0:
+            today = date.today()
+            # Compute streak BEFORE this expense is saved (pre-save totals)
+            daily = get_daily_totals_for_month(db, current_user.id, today.year, today.month)
+            limit = get_daily_spend_limit(wallet, daily, today)
+            streak = compute_current_streak(daily, limit, today)
+
+            # 2× bonus when streak >= 7 consecutive under-limit days
+            if streak >= 7:
+                spare = round(spare * 2, 2)
+                roundup_doubled = True
+
+            roundup_spare = spare
+            wallet.savings_jar = round(wallet.savings_jar + spare, 2)
+
+    expense = Expense(
+        user_id=current_user.id,
+        roundup_spare=roundup_spare,
+        roundup_doubled=roundup_doubled,
+        **payload.model_dump(),
+    )
     db.add(expense)
     db.commit()
     db.refresh(expense)
