@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import Spinner from '../components/Spinner';
+import BottomNav from '../components/BottomNav';
 
 // Animates a number from 0 → target with ease-out cubic easing
 function useCountUp(target, duration = 1300) {
@@ -98,7 +99,7 @@ export default function Dashboard() {
   const savedMore = stats.saved_vs_yesterday > 0;
 
   return (
-    <div className="min-h-screen bg-bg pb-32">
+    <div className="min-h-screen bg-bg pb-36">
       <div className="max-w-sm mx-auto px-4 pt-8 flex flex-col gap-4">
 
         {/* ── 1. Greeting ── */}
@@ -219,15 +220,17 @@ export default function Dashboard() {
 
       </div>
 
-      {/* ── 7. Floating add button ── */}
+      {/* ── 7. Floating add button — sits above the bottom nav ── */}
       <button
         onClick={() => navigate('/add')}
-        className="fixed bottom-6 right-5 flex items-center gap-2 bg-primary hover:bg-primary/90 active:scale-95 text-white font-semibold text-sm px-5 py-3.5 rounded-full transition-all duration-150"
+        className="fixed bottom-[76px] right-5 flex items-center gap-2 bg-primary hover:bg-primary/90 active:scale-95 text-white font-semibold text-sm px-5 py-3.5 rounded-full transition-all duration-150 z-40"
         style={{ boxShadow: '0 4px 24px rgba(59, 108, 255, 0.45)' }}
       >
         <span className="text-lg leading-none font-light">+</span>
         Add expense
       </button>
+
+      <BottomNav />
     </div>
   );
 }
