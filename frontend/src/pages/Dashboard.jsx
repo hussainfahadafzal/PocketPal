@@ -1,46 +1,72 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
-import Card from '../components/Card';
 import Spinner from '../components/Spinner';
 
-function greeting() {
+// Animates a number from 0 → target with ease-out cubic easing
+function useCountUp(target, duration = 1300) {
+  const [display, setDisplay] = useState(0);
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    if (!target) { setDisplay(0); return; }
+    let startTime = null;
+
+    const step = (ts) => {
+      if (!startTime) startTime = ts;
+      const progress = Math.min((ts - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(eased * target));
+      if (progress < 1) rafRef.current = requestAnimationFrame(step);
+    };
+
+    rafRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [target, duration]);
+
+  return display;
+}
+
+function greetingWord() {
   const h = new Date().getHours();
   if (h < 12) return 'morning';
   if (h < 17) return 'afternoon';
   return 'evening';
 }
 
-// Formats a number as a compact currency string (no cents on whole numbers)
-function fmt(n) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(n);
-}
+// Indian number formatting: 1,00,000 style
+const inr = (n) => Math.round(Math.abs(n)).toLocaleString('en-IN');
 
-function StatCard({ label, value, valueClass = 'text-text' }) {
-  return (
-    <Card className="!p-4">
-      <p className="text-muted text-xs mb-1">{label}</p>
-      <p className={`font-heading text-xl font-bold ${valueClass}`}>{value}</p>
-    </Card>
-  );
+function nudgeText({ daily_spend_limit, spent_today, balance_left, streak_days }) {
+  if (balance_left < 0)
+    return "You've exceeded your monthly budget. Stick to essentials for the rest of the month.";
+  if (spent_today > daily_spend_limit)
+    return `You're ₹${inr(spent_today - daily_spend_limit)} over today's limit. Try to coast for the rest of the day.`;
+  if (streak_days >= 5)
+    return `${streak_days} days under budget — that's a real habit forming. Don't break it now.`;
+  if (streak_days >= 2)
+    return `${streak_days} days strong! Small wins compound. Keep the streak going.`;
+  const left = daily_spend_limit - spent_today;
+  if (left > 0)
+    return `₹${inr(left)} left in your daily allowance. Spend it on something that counts.`;
+  return 'You\'ve used up today\'s allowance. Rest and tomorrow starts fresh.';
 }
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const animatedLimit = useCountUp(stats?.daily_spend_limit ?? 0);
 
   useEffect(() => {
     client
       .get('/dashboard')
       .then((res) => setStats(res.data))
-      .catch(() => setError('Could not load dashboard data.'))
+      .catch(() => setError('Could not load your dashboard. Try refreshing.'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -54,86 +80,154 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-bg flex items-center justify-center p-4">
-        <p className="text-danger text-sm text-center">{error}</p>
+      <div className="min-h-screen bg-bg flex items-center justify-center p-6">
+        <div className="text-center">
+          <p className="text-danger text-sm mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-primary text-sm underline"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
 
-  const savedSign = stats.saved_vs_yesterday >= 0 ? '+' : '';
+  const firstName = user?.name?.split(' ')[0] ?? 'there';
+  const savedMore = stats.saved_vs_yesterday > 0;
 
   return (
-    <div className="min-h-screen bg-bg">
-      <div className="max-w-sm mx-auto px-4 pt-6 pb-10">
+    <div className="min-h-screen bg-bg pb-32">
+      <div className="max-w-sm mx-auto px-4 pt-8 flex flex-col gap-4">
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-7">
-          <div>
-            <p className="text-muted text-xs uppercase tracking-widest">
-              Good {greeting()}
-            </p>
-            <h1 className="font-heading text-2xl font-semibold text-text mt-0.5">
-              {user?.name}
-            </h1>
-          </div>
+        {/* ── 1. Greeting ── */}
+        <div className="flex items-start justify-between">
+          <h1 className="font-heading text-2xl font-semibold text-text leading-snug">
+            Good {greetingWord()}, {firstName} 👋
+          </h1>
           <button
             onClick={logout}
-            className="text-muted text-xs hover:text-text transition-colors px-3 py-1.5 rounded-lg border border-border"
+            className="text-muted text-xs mt-1 shrink-0 hover:text-text transition-colors"
           >
             Sign out
           </button>
         </div>
 
-        {/* Hero — daily spend limit */}
-        <Card className="mb-4 text-center">
-          <p className="text-muted text-sm mb-2">Today's spend limit</p>
-          <p className="font-heading text-6xl font-bold text-primary tracking-tight">
-            {fmt(stats.daily_spend_limit)}
-          </p>
-          <p className="text-muted text-xs mt-3">
-            {stats.days_left_in_month} day{stats.days_left_in_month !== 1 ? 's' : ''} left in the month
-          </p>
-        </Card>
+        {/* ── 2. Hero card ── */}
+        <div
+          className="rounded-2xl p-6 relative overflow-hidden select-none"
+          style={{ background: 'linear-gradient(135deg, #3B6CFF 0%, #2952CC 55%, #162A7A 100%)' }}
+        >
+          {/* Ambient blobs for depth */}
+          <div
+            className="absolute -top-10 -right-10 w-44 h-44 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.07) 0%, transparent 70%)' }}
+            aria-hidden
+          />
+          <div
+            className="absolute -bottom-8 -left-6 w-36 h-36 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%)' }}
+            aria-hidden
+          />
 
-        {/* Stats grid */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <StatCard
-            label="Spent today"
-            value={fmt(stats.spent_today)}
-          />
-          <StatCard
-            label="This month"
-            value={fmt(stats.spent_this_month)}
-          />
-          <StatCard
-            label="Balance left"
-            value={fmt(stats.balance_left)}
-            valueClass={stats.balance_left >= 0 ? 'text-save' : 'text-danger'}
-          />
-          <StatCard
-            label="vs Yesterday"
-            value={`${savedSign}${fmt(stats.saved_vs_yesterday)}`}
-            valueClass={stats.saved_vs_yesterday >= 0 ? 'text-save' : 'text-danger'}
-          />
-        </div>
+          <p className="text-white/65 text-sm font-medium mb-5 relative z-10">
+            Today you can spend
+          </p>
 
-        {/* Streak */}
-        <Card className="flex items-center justify-between">
-          <div>
-            <p className="text-muted text-xs mb-0.5">Under-budget streak</p>
-            <p className="font-heading text-3xl font-bold text-streak">
-              {stats.streak_days}{' '}
-              <span className="text-lg font-medium">day{stats.streak_days !== 1 ? 's' : ''}</span>
+          {/* The ONE bold number */}
+          <div className="relative z-10 mb-1">
+            {/* Soft glow behind the number */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: 'radial-gradient(ellipse 80% 60% at 30% 60%, rgba(147,197,253,0.22) 0%, transparent 75%)',
+                filter: 'blur(8px)',
+              }}
+              aria-hidden
+            />
+            <p
+              className="font-heading font-bold text-white relative"
+              style={{
+                fontSize: 'clamp(3.5rem, 18vw, 5rem)',
+                lineHeight: 1,
+                letterSpacing: '-0.03em',
+              }}
+            >
+              <span className="text-white/75" style={{ fontSize: '55%', verticalAlign: 'super', marginRight: '0.05em' }}>
+                ₹
+              </span>
+              {animatedLimit.toLocaleString('en-IN')}
             </p>
           </div>
-          <div className="flex flex-col items-end gap-1">
-            {[...Array(Math.min(stats.streak_days, 5))].map((_, i) => (
-              <div key={i} className="w-1.5 h-1.5 rounded-full bg-streak opacity-80" />
-            ))}
+
+          {/* Sub-line */}
+          <p className="text-white/55 text-sm mt-5 relative z-10">
+            Balance left ₹{inr(stats.balance_left)}&nbsp;•&nbsp;
+            {stats.days_left_in_month} day{stats.days_left_in_month !== 1 ? 's' : ''} to go
+          </p>
+        </div>
+
+        {/* ── 3. Saved pill ── */}
+        {savedMore && (
+          <div className="flex">
+            <div className="inline-flex items-center gap-2 bg-save/10 border border-save/25 rounded-full px-4 py-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-save shrink-0" />
+              <span className="text-save text-sm font-medium">
+                You saved ₹{inr(stats.saved_vs_yesterday)} more than yesterday 🔥
+              </span>
+            </div>
           </div>
-        </Card>
+        )}
+
+        {/* ── 4. Streak badge ── */}
+        {stats.streak_days > 0 && (
+          <div className="flex">
+            <div className="inline-flex items-center gap-2 bg-streak/10 border border-streak/25 rounded-full px-4 py-2">
+              <span className="text-streak text-sm font-semibold">
+                🔥 {stats.streak_days}-day streak
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* ── 5. Pal nudge ── */}
+        <div className="bg-warn/10 border border-warn/20 rounded-2xl px-5 py-4">
+          <p className="text-warn text-[10px] font-bold uppercase tracking-[0.12em] mb-2">
+            Pal says
+          </p>
+          <p className="text-text/85 text-sm leading-relaxed">
+            {nudgeText(stats)}
+          </p>
+        </div>
+
+        {/* ── 6. Quick stats ── */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-surface border border-border rounded-2xl p-4">
+            <p className="text-muted text-xs mb-2">Spent today</p>
+            <p className="font-heading text-xl font-bold text-text">
+              ₹{inr(stats.spent_today)}
+            </p>
+          </div>
+          <div className="bg-surface border border-border rounded-2xl p-4">
+            <p className="text-muted text-xs mb-2">This month</p>
+            <p className="font-heading text-xl font-bold text-text">
+              ₹{inr(stats.spent_this_month)}
+            </p>
+          </div>
+        </div>
 
       </div>
+
+      {/* ── 7. Floating add button ── */}
+      <button
+        onClick={() => navigate('/add')}
+        className="fixed bottom-6 right-5 flex items-center gap-2 bg-primary hover:bg-primary/90 active:scale-95 text-white font-semibold text-sm px-5 py-3.5 rounded-full transition-all duration-150"
+        style={{ boxShadow: '0 4px 24px rgba(59, 108, 255, 0.45)' }}
+      >
+        <span className="text-lg leading-none font-light">+</span>
+        Add expense
+      </button>
     </div>
   );
 }
