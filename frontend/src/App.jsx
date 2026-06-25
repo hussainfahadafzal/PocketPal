@@ -7,6 +7,8 @@ import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import AddExpense from './pages/AddExpense';
 import History from './pages/History';
+import Budgets from './pages/Budgets';
+import Analysis from './pages/Analysis';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -57,6 +59,22 @@ export default function App() {
         element={
           <ProtectedRoute>
             <History />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/budgets"
+        element={
+          <ProtectedRoute>
+            <Budgets />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/analysis"
+        element={
+          <ProtectedRoute>
+            <Analysis />
           </ProtectedRoute>
         }
       />

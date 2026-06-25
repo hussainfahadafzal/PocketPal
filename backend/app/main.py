@@ -7,6 +7,7 @@ from .routers import categories as categories_router
 from .routers import dashboard as dashboard_router
 from .routers import expenses as expenses_router
 from .routers import wallet as wallet_router
+from .routers import pal as pal_router
 
 app = FastAPI(title="PocketPal API", version="1.0.0")
 
@@ -30,6 +31,7 @@ app.include_router(wallet_router.router)
 app.include_router(categories_router.router)
 app.include_router(expenses_router.router)
 app.include_router(dashboard_router.router)
+app.include_router(pal_router.router)
 
 
 @app.get("/", tags=["health"])

@@ -39,21 +39,6 @@ function greetingWord() {
 // Indian number formatting: 1,00,000 style
 const inr = (n) => Math.round(Math.abs(n)).toLocaleString('en-IN');
 
-function nudgeText({ daily_spend_limit, spent_today, balance_left, streak_days }) {
-  if (balance_left < 0)
-    return "You've exceeded your monthly budget. Stick to essentials for the rest of the month.";
-  if (spent_today > daily_spend_limit)
-    return `You're ₹${inr(spent_today - daily_spend_limit)} over today's limit. Try to coast for the rest of the day.`;
-  if (streak_days >= 5)
-    return `${streak_days} days under budget — that's a real habit forming. Don't break it now.`;
-  if (streak_days >= 2)
-    return `${streak_days} days strong! Small wins compound. Keep the streak going.`;
-  const left = daily_spend_limit - spent_today;
-  if (left > 0)
-    return `₹${inr(left)} left in your daily allowance. Spend it on something that counts.`;
-  return 'You\'ve used up today\'s allowance. Rest and tomorrow starts fresh.';
-}
-
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -61,6 +46,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [nudge, setNudge] = useState(null);
   const animatedLimit = useCountUp(stats?.daily_spend_limit ?? 0);
 
   useEffect(() => {
@@ -69,6 +55,13 @@ export default function Dashboard() {
       .then((res) => setStats(res.data))
       .catch(() => setError('Could not load your dashboard. Try refreshing.'))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    client
+      .get('/pal/nudges')
+      .then((res) => { if (res.data.length) setNudge(res.data[0]); })
+      .catch(() => {});
   }, []);
 
   if (loading) {
@@ -192,14 +185,19 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── 5. Pal nudge ── */}
+        {/* ── 5. Pal nudge — first result from GET /pal/nudges ── */}
         <div className="bg-warn/10 border border-warn/20 rounded-2xl px-5 py-4">
           <p className="text-warn text-[10px] font-bold uppercase tracking-[0.12em] mb-2">
             Pal says
           </p>
-          <p className="text-text/85 text-sm leading-relaxed">
-            {nudgeText(stats)}
-          </p>
+          {nudge ? (
+            <div className="flex items-start gap-2">
+              <span className="text-base shrink-0 leading-snug mt-0.5" aria-hidden>{nudge.icon}</span>
+              <p className="text-text/85 text-sm leading-relaxed">{nudge.message}</p>
+            </div>
+          ) : (
+            <p className="text-text/30 text-sm">…</p>
+          )}
         </div>
 
         {/* ── 6. Quick stats ── */}

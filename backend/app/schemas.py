@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr
 
@@ -79,6 +79,14 @@ class ExpenseResponse(ExpenseCreate):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# --- Pal nudges ---
+
+class Nudge(BaseModel):
+    type: str
+    message: str
+    icon: str
 
 
 # --- Dashboard ---
