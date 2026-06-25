@@ -1,33 +1,69 @@
+/* ── Clash Display (display / big numbers) ───────────────────────────── */
+@import url('https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap');
+
+/* ── Space Grotesk (section headings) + Inter (body) ────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ── Base resets ─────────────────────────────────────────────────────── */
 @layer base {
   body {
     @apply bg-bg text-text font-body;
     -webkit-tap-highlight-color: transparent;
+    /* Very subtle blue bloom at the very top of the page */
+    background-image: radial-gradient(
+      ellipse 80% 30% at 50% 0%,
+      rgba(59, 108, 255, 0.07) 0%,
+      transparent 100%
+    );
+    background-attachment: fixed;
   }
-
-  * {
-    @apply box-border;
-  }
+  * { @apply box-border; }
 }
 
+/* ── Custom utilities ────────────────────────────────────────────────── */
 @layer utilities {
+  /* Page entrance animation */
   .page-enter {
-    animation: pp-fadein 0.2s ease-out both;
+    animation: pp-fadein 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
+
+  /* Gradient text — clip background to text characters */
+  .text-grad-primary {
+    background: linear-gradient(135deg, #3B6CFF 0%, #8B5CF6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .text-grad-energy {
+    background: linear-gradient(135deg, #EC4899 0%, #F97316 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .text-grad-success {
+    background: linear-gradient(135deg, #10B981 0%, #06B6D4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .text-grad-warm {
+    background: linear-gradient(135deg, #F59E0B 0%, #F97316 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Scrollbar suppression on mobile-like views */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
+/* ── Keyframes ───────────────────────────────────────────────────────── */
 @keyframes pp-fadein {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
