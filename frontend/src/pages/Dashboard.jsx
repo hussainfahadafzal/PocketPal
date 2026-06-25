@@ -53,9 +53,15 @@ export default function Dashboard() {
     client
       .get('/dashboard')
       .then((res) => setStats(res.data))
-      .catch(() => setError('Could not load your dashboard. Try refreshing.'))
+      .catch((err) => {
+        if (err.response?.status === 404) {
+          navigate('/onboarding');
+        } else {
+          setError('Could not load your dashboard. Try refreshing.');
+        }
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     client

@@ -61,11 +61,14 @@ export default function Budgets() {
   const [walletSaving, setWalletSaving] = useState(false);
   const [walletStatus, setWalletStatus] = useState(null); // 'ok' | 'err'
 
+  const [walletErrors, setWalletErrors] = useState({});
+
   // ── categories ──
   const [categories, setCategories] = useState([]);
   const [catSpent, setCatSpent] = useState({}); // id → amount spent this month
   const [newCat, setNewCat] = useState({ name: '', monthly_cap: '', color: PALETTE[0].hex });
   const [catAdding, setCatAdding] = useState(false);
+  const [catError, setCatError] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null);
 
   useEffect(() => {
@@ -97,13 +100,24 @@ export default function Budgets() {
   }
 
   async function saveWallet() {
+    const errs = {};
+    const bal = parseFloat(wallet.monthly_balance);
+    const goal = parseFloat(wallet.savings_goal);
+    if (!wallet.monthly_balance || isNaN(bal) || bal <= 0)
+      errs.monthly_balance = 'Enter a positive amount';
+    if (wallet.savings_goal && !isNaN(goal) && goal < 0)
+      errs.savings_goal = 'Enter a valid amount';
+    if (!isNaN(bal) && !isNaN(goal) && goal > bal)
+      errs.savings_goal = 'Cannot exceed monthly budget';
+    if (Object.keys(errs).length) { setWalletErrors(errs); return; }
+    setWalletErrors({});
     setWalletSaving(true);
     setWalletStatus(null);
     try {
       await client.post('/wallet', {
-        monthly_balance: parseFloat(wallet.monthly_balance) || 0,
-        savings_goal:    parseFloat(wallet.savings_goal)    || 0,
-        goal_name:       wallet.goal_name.trim()            || null,
+        monthly_balance: bal,
+        savings_goal:    parseFloat(wallet.savings_goal) || 0,
+        goal_name:       wallet.goal_name.trim()         || null,
       });
       setWalletStatus('ok');
       setTimeout(() => setWalletStatus(null), 2500);
@@ -115,7 +129,11 @@ export default function Budgets() {
   }
 
   async function addCategory() {
-    if (!newCat.name.trim()) return;
+    if (!newCat.name.trim()) {
+      setCatError('Category name is required');
+      return;
+    }
+    setCatError('');
     setCatAdding(true);
     try {
       await client.post('/categories', {
@@ -126,6 +144,7 @@ export default function Budgets() {
       setNewCat({ name: '', monthly_cap: '', color: PALETTE[0].hex });
       loadCategories();
     } catch {
+      setCatError('Could not add category. Try again.');
     } finally {
       setCatAdding(false);
     }
@@ -153,16 +172,26 @@ export default function Budgets() {
           <SectionLabel>Monthly Wallet</SectionLabel>
           <Card>
             <div className="flex flex-col gap-4">
-              <RupeeInput
-                label="Monthly budget"
-                value={wallet.monthly_balance}
-                onChange={(v) => setWallet((w) => ({ ...w, monthly_balance: v }))}
-              />
-              <RupeeInput
-                label="Savings goal"
-                value={wallet.savings_goal}
-                onChange={(v) => setWallet((w) => ({ ...w, savings_goal: v }))}
-              />
+              <div>
+                <RupeeInput
+                  label="Monthly budget"
+                  value={wallet.monthly_balance}
+                  onChange={(v) => setWallet((w) => ({ ...w, monthly_balance: v }))}
+                />
+                {walletErrors.monthly_balance && (
+                  <p className="text-danger text-xs mt-1">{walletErrors.monthly_balance}</p>
+                )}
+              </div>
+              <div>
+                <RupeeInput
+                  label="Savings goal"
+                  value={wallet.savings_goal}
+                  onChange={(v) => setWallet((w) => ({ ...w, savings_goal: v }))}
+                />
+                {walletErrors.savings_goal && (
+                  <p className="text-danger text-xs mt-1">{walletErrors.savings_goal}</p>
+                )}
+              </div>
               <Input
                 label="Saving for (optional)"
                 placeholder="e.g. New laptop, Spring trip"
@@ -238,6 +267,9 @@ export default function Budgets() {
                 </div>
               </div>
 
+              {catError && (
+                <p className="text-danger text-xs">{catError}</p>
+              )}
               <Button onClick={addCategory} loading={catAdding}>
                 Add category
               </Button>

@@ -4,7 +4,7 @@ import client from '../api/client';
 import Spinner from '../components/Spinner';
 import BottomNav from '../components/BottomNav';
 
-const inr = (n) => Math.abs(n).toLocaleString('en-IN');
+const inr = (n) => Math.round(Math.abs(n)).toLocaleString('en-IN');
 
 function todayMonth() {
   const d = new Date();

@@ -1,15 +1,15 @@
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 # --- Auth / User ---
 
 class UserCreate(BaseModel):
-    name: str
+    name: str = Field(min_length=1, max_length=100)
     email: EmailStr
-    password: str
+    password: str = Field(min_length=8)
 
 
 class UserResponse(BaseModel):
@@ -38,9 +38,9 @@ class TokenData(BaseModel):
 # --- Wallet ---
 
 class WalletCreate(BaseModel):
-    monthly_balance: float = 0.0
-    savings_goal: float = 0.0
-    goal_name: Optional[str] = None
+    monthly_balance: float = Field(default=0.0, ge=0)
+    savings_goal: float = Field(default=0.0, ge=0)
+    goal_name: Optional[str] = Field(default=None, max_length=60)
 
 
 class WalletResponse(WalletCreate):
@@ -53,8 +53,8 @@ class WalletResponse(WalletCreate):
 # --- Category ---
 
 class CategoryCreate(BaseModel):
-    name: str
-    monthly_cap: Optional[float] = None
+    name: str = Field(min_length=1, max_length=50)
+    monthly_cap: Optional[float] = Field(default=None, ge=0)
     color: Optional[str] = None
 
 
@@ -68,8 +68,8 @@ class CategoryResponse(CategoryCreate):
 # --- Expense ---
 
 class ExpenseCreate(BaseModel):
-    amount: float
-    note: Optional[str] = None
+    amount: float = Field(gt=0)
+    note: Optional[str] = Field(default=None, max_length=120)
     category_id: Optional[int] = None
 
 

@@ -43,9 +43,11 @@ export default function Analysis() {
   const [categories, setCategories] = useState([]);
   const [nudges, setNudges] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     setLoading(true);
+    setError('');
     Promise.all([
       client.get('/expenses', { params: { month } }),
       client.get('/categories'),
@@ -54,7 +56,7 @@ export default function Analysis() {
         setExpenses(expRes.data);
         setCategories(catRes.data);
       })
-      .catch(() => {})
+      .catch(() => setError('Could not load analysis. Try refreshing.'))
       .finally(() => setLoading(false));
   }, [month]);
 
@@ -96,7 +98,8 @@ export default function Analysis() {
 
     const daily = {};
     expenses.forEach((e) => {
-      const day = new Date(e.created_at).getDate();
+      // Parse day directly from ISO string to avoid timezone shifting
+      const day = parseInt(e.created_at.split('T')[0].split('-')[2], 10);
       daily[day] = (daily[day] || 0) + e.amount;
     });
 
@@ -129,6 +132,8 @@ export default function Analysis() {
           <div className="flex justify-center pt-20">
             <Spinner size="lg" />
           </div>
+        ) : error ? (
+          <p className="text-danger text-sm text-center pt-20">{error}</p>
         ) : (
           <>
             {/* ── Donut: spending by category ── */}
