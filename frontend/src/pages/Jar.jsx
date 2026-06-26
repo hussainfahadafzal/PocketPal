@@ -262,7 +262,7 @@ export default function Jar() {
                 value={goalName}
                 onChange={(e) => setGoalName(e.target.value)}
                 className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3
-                  text-text text-sm outline-none focus:border-primary transition-all duration-150
+                  text-text text-base outline-none focus:border-primary transition-all duration-150
                   placeholder:text-muted/35"
               />
               <div className="relative">
@@ -276,7 +276,7 @@ export default function Jar() {
                   value={goalAmount}
                   onChange={(e) => setGoalAmount(e.target.value)}
                   className="w-full bg-surface-2 border border-border rounded-xl pl-9 pr-4 py-3
-                    text-text text-sm outline-none focus:border-primary transition-all duration-150
+                    text-text text-base outline-none focus:border-primary transition-all duration-150
                     placeholder:text-muted/35"
                 />
               </div>

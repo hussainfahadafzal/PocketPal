@@ -4,8 +4,15 @@ export default function TopBar({ showLogout = false }) {
   const { logout } = useAuth();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/30"
-      style={{ background: 'rgba(7, 9, 26, 0.85)', backdropFilter: 'blur(16px)' }}
+    <header
+      className="sticky top-0 z-40 border-b border-border/30"
+      style={{
+        background: 'rgba(7, 9, 26, 0.88)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        // Extend under the iOS status bar; push content below it with padding
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+      }}
     >
       <div className="max-w-sm mx-auto px-4 h-14 flex items-center justify-between">
         {/* Gradient wordmark */}

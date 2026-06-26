@@ -48,7 +48,10 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-bg flex items-center justify-center p-5 page-enter overflow-hidden">
+    <div
+      className="min-h-screen bg-bg flex items-center justify-center p-5 page-enter overflow-hidden"
+      style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top, 0px))' }}
+    >
       {/* Background glow */}
       <div
         className="fixed inset-0 pointer-events-none"

@@ -72,6 +72,7 @@ export default function BottomNav() {
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         transform: 'translateZ(0)',
         WebkitTransform: 'translateZ(0)',
+        willChange: 'transform',
       }}
     >
       <div className="max-w-sm mx-auto flex">

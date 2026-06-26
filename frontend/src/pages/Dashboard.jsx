@@ -189,10 +189,14 @@ function AddFAB({ onClick }) {
       whileTap={{ scale: 0.91 }}
       transition={{ duration: 0.12, ease: 'easeOut' }}
       onClick={onClick}
-      className="fixed bottom-[76px] right-5 flex items-center gap-2
-        text-white font-bold text-sm px-5 py-3.5 rounded-full z-40
+      className="fixed right-5 flex items-center gap-2
+        text-white font-bold text-sm px-5 py-3.5 rounded-full z-[9000]
         hover:brightness-110"
       style={{
+        // Sits above the nav bar (~60px tall) plus the safe-area dead zone, with a 16px gap.
+        // env(safe-area-inset-bottom) is 0 on devices without a home indicator and up to
+        // 44px on current iPhones — this keeps the FAB clear on all hardware.
+        bottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 16px)',
         background: 'linear-gradient(135deg, #3B6CFF 0%, #8B5CF6 100%)',
         boxShadow: '0 8px 32px rgba(59,108,255,0.55), 0 2px 12px rgba(139,92,246,0.3)',
       }}
@@ -306,7 +310,7 @@ export default function Dashboard() {
   const firstName = user?.name?.split(' ')[0] ?? 'there';
 
   return (
-    <div className="min-h-screen bg-bg pb-28">
+    <div className="min-h-screen bg-bg" style={{ paddingBottom: 'calc(10rem + env(safe-area-inset-bottom, 0px))' }}>
       <TopBar showLogout />
 
       {/* 2× streak unlock toast */}

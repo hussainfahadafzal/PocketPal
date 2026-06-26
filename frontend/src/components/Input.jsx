@@ -8,7 +8,7 @@ export default function Input({ label, error, className = '', ...props }) {
       )}
       <input
         className={`bg-surface-2 border ${error ? 'border-danger' : 'border-border'}
-          rounded-xl px-4 py-3 text-text text-sm outline-none
+          rounded-xl px-4 py-3 text-text text-base outline-none
           focus:border-primary transition-all duration-150 placeholder:text-muted/40
           ${className}`}
         {...props}

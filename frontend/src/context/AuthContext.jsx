@@ -34,9 +34,13 @@ export function AuthProvider({ children }) {
     client
       .get('/auth/me')
       .then((res) => setUser(res.data))
-      .catch(() => {
-        // Token invalid / expired — purge everything so the next user starts clean
-        _clearSession(setUser);
+      .catch((err) => {
+        // Only purge on a real 401 (expired/invalid token).
+        // Network errors and server hiccups don't expire the token, so keep the
+        // user logged in and let them retry when connectivity is restored.
+        if (err.response?.status === 401) {
+          _clearSession(setUser);
+        }
       })
       .finally(() => setLoading(false));
   }, []);

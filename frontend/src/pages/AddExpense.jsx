@@ -4,10 +4,22 @@ import client from '../api/client';
 import Button from '../components/Button';
 import Card from '../components/Card';
 
-const MERCHANT_VPA = 'merchant@upi';
+const UPI_LS_KEY = 'pocketpal_upi';
 
 function isMobile() {
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || navigator.maxTouchPoints > 1;
+}
+
+// Normalise a phone number or VPA input into a UPI VPA string.
+// 10-digit numbers (with or without +91 / 91 prefix) → digits@upi.
+// Anything else is returned as-is (assumed to already be a VPA).
+function toUpiId(input) {
+  const s = input.trim();
+  if (!s) return '';
+  const withPrefix = s.match(/^\+?91(\d{10})$/);
+  if (withPrefix) return withPrefix[1] + '@upi';
+  if (/^\d{10}$/.test(s)) return s + '@upi';
+  return s;
 }
 
 function ChevronDown() {
@@ -28,26 +40,105 @@ function CheckCircle() {
   );
 }
 
-function ConfirmScreen({ amount, savedExpense, onDone }) {
+const UPI_APPS = [
+  {
+    id: 'phonepe',
+    label: 'PhonePe',
+    color: '#5f259f',
+    abbr: 'Ph',
+    href: (pa, pn, am) => `phonepe://pay?pa=${pa}&pn=${pn}&am=${am}&cu=INR`,
+  },
+  {
+    id: 'gpay',
+    label: 'GPay',
+    color: '#1a73e8',
+    abbr: 'G',
+    href: (pa, pn, am) => `tez://upi/pay?pa=${pa}&pn=${pn}&am=${am}&cu=INR`,
+  },
+  {
+    id: 'paytm',
+    label: 'Paytm',
+    color: '#002970',
+    abbr: 'Pt',
+    href: (pa, pn, am) => `paytmmp://pay?pa=${pa}&pn=${pn}&am=${am}&cu=INR`,
+  },
+  {
+    id: 'upi',
+    label: 'Other',
+    color: '#6366f1',
+    abbr: '↗',
+    href: (pa, pn, am) => `upi://pay?pa=${pa}&pn=${pn}&am=${am}&cu=INR`,
+  },
+];
+
+function UpiPicker({ upiId, amount }) {
   const [copied, setCopied] = useState(false);
   const mobile = isMobile();
-  const upiLink = `upi://pay?pa=${MERCHANT_VPA}&pn=PocketPal&am=${amount}&cu=INR`;
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(upiLink).then(() => {
+  const pa = encodeURIComponent(upiId);
+  const pn = encodeURIComponent('PocketPal');
+  const am = encodeURIComponent(amount);
+
+  const copyId = () => {
+    navigator.clipboard.writeText(upiId).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2200);
     });
   };
 
   return (
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-4 gap-2">
+        {UPI_APPS.map((app) => (
+          <a
+            key={app.id}
+            href={app.href(pa, pn, am)}
+            className="flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl active:scale-95 transition-all duration-150 select-none"
+            style={{ backgroundColor: app.color }}
+          >
+            <span className="text-white font-bold text-base leading-none">{app.abbr}</span>
+            <span className="text-white/90 text-[10px] font-medium text-center leading-tight">{app.label}</span>
+          </a>
+        ))}
+      </div>
+
+      {!mobile && (
+        <div className="flex flex-col gap-2">
+          <p className="text-muted text-xs text-center">
+            UPI app links open on mobile. On desktop, copy the UPI ID and paste it into your UPI app.
+          </p>
+          <div className="flex gap-2 items-center">
+            <div className="flex-1 bg-surface-2 border border-border rounded-xl px-3 py-2 font-mono text-xs text-muted break-all select-all">
+              {upiId}
+            </div>
+            <button
+              onClick={copyId}
+              className="shrink-0 px-3 py-2 rounded-xl border border-border text-xs text-muted hover:text-text hover:border-muted transition-all duration-150"
+            >
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConfirmScreen({ amount, savedExpense, upiId, onDone }) {
+  return (
     <div className="min-h-screen bg-bg flex flex-col page-enter">
-      <header className="h-14 flex items-center px-4 border-b border-border/40">
-        <span className="font-heading font-bold text-text text-base tracking-tight select-none">PocketPal</span>
+      <header
+        className="border-b border-border/40"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      >
+        <div className="h-14 flex items-center px-4">
+          <span className="font-heading font-bold text-text text-base tracking-tight select-none">PocketPal</span>
+        </div>
       </header>
 
       <div className="flex-1 flex flex-col items-center justify-center p-5 pb-28">
         <div className="w-full max-w-sm flex flex-col gap-5">
+
           <div className="text-center flex flex-col gap-3">
             <CheckCircle />
             <div>
@@ -59,31 +150,23 @@ function ConfirmScreen({ amount, savedExpense, onDone }) {
           </div>
 
           <Card>
-            <p className="text-text text-sm font-semibold mb-1">Pay via UPI</p>
-            <p className="text-muted text-xs mb-4">
-              {mobile
-                ? 'Tap below to open your UPI app and complete the payment.'
-                : 'On your phone, open any UPI app and paste the link below.'}
-            </p>
-
-            {mobile ? (
-              <a
-                href={upiLink}
-                className="block w-full text-center py-3 px-4 rounded-xl bg-primary
-                  hover:bg-primary/90 active:scale-[0.97] text-white font-semibold text-sm
-                  transition-all duration-150"
-              >
-                Open UPI App — ₹{parseFloat(amount).toLocaleString('en-IN')}
-              </a>
+            <p className="text-text text-sm font-semibold mb-2">Pay via UPI</p>
+            {upiId ? (
+              <>
+                <p className="text-muted text-xs mb-1">
+                  PocketPal has logged the expense. Complete payment in your UPI app.
+                </p>
+                <p className="text-muted text-xs mb-4">
+                  To:{' '}
+                  <span className="font-mono text-text">{upiId}</span>
+                  <span className="text-muted"> · ₹{parseFloat(amount).toLocaleString('en-IN')}</span>
+                </p>
+                <UpiPicker upiId={upiId} amount={amount} />
+              </>
             ) : (
-              <div className="flex flex-col gap-3">
-                <div className="bg-surface-2 border border-border rounded-xl p-3 font-mono text-xs text-muted break-all select-all">
-                  {upiLink}
-                </div>
-                <Button variant="ghost" onClick={copyLink}>
-                  {copied ? 'Copied!' : 'Copy UPI link'}
-                </Button>
-              </div>
+              <p className="text-muted text-xs">
+                No payee UPI ID entered. Go back and add one to pay via app, or pay manually in your UPI app.
+              </p>
             )}
           </Card>
 
@@ -98,9 +181,9 @@ function ConfirmScreen({ amount, savedExpense, onDone }) {
           >
             Done — back to dashboard
           </Button>
+
         </div>
       </div>
-
     </div>
   );
 }
@@ -109,6 +192,7 @@ export default function AddExpense() {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [form, setForm] = useState({ amount: '', categoryId: '', note: '' });
+  const [upiInput, setUpiInput] = useState(() => localStorage.getItem(UPI_LS_KEY) || '');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -139,6 +223,7 @@ export default function AddExpense() {
         note:        form.note.trim() || null,
       });
       setSavedExpense(res.data);
+      if (upiInput.trim()) localStorage.setItem(UPI_LS_KEY, upiInput.trim());
       setSaved(true);
     } catch (err) {
       setErrors({ api: err.response?.data?.detail || 'Could not save. Try again.' });
@@ -152,6 +237,7 @@ export default function AddExpense() {
       <ConfirmScreen
         amount={form.amount}
         savedExpense={savedExpense}
+        upiId={toUpiId(upiInput)}
         onDone={({ spare, doubled }) =>
           navigate('/dashboard', {
             state: { celebration: { spare, doubled } },
@@ -163,11 +249,19 @@ export default function AddExpense() {
 
   const selectedCat = categories.find((c) => c.id === parseInt(form.categoryId));
   const hasAmount = form.amount && parseFloat(form.amount) > 0;
-  const upiPreviewLink = `upi://pay?pa=${MERCHANT_VPA}&pn=PocketPal&am=${form.amount}&cu=INR`;
+  const upiId = toUpiId(upiInput);
 
   return (
     <div className="min-h-screen bg-bg pb-28 page-enter">
-      <header className="sticky top-0 z-40 bg-bg/95 backdrop-blur-sm border-b border-border/40">
+      <header
+        className="sticky top-0 z-40 border-b border-border/40"
+        style={{
+          background: 'rgba(10,14,30,0.95)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+        }}
+      >
         <div className="max-w-sm mx-auto px-4 h-14 flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
@@ -184,7 +278,7 @@ export default function AddExpense() {
         </div>
       </header>
 
-      <div className="max-w-sm mx-auto px-4 pt-5">
+      <div className="max-w-sm mx-auto px-4 pt-5 flex flex-col gap-4">
         <Card>
           <div className="flex flex-col gap-5">
 
@@ -226,7 +320,7 @@ export default function AddExpense() {
                   onChange={set('categoryId')}
                   className={`w-full bg-surface-2 border border-border rounded-xl
                     ${selectedCat?.color ? 'pl-9' : 'pl-4'} pr-9 py-3
-                    text-text text-sm outline-none focus:border-primary transition-all duration-150
+                    text-text text-base outline-none focus:border-primary transition-all duration-150
                     appearance-none`}
                 >
                   <option value="">No category</option>
@@ -251,7 +345,7 @@ export default function AddExpense() {
                 onChange={set('note')}
                 maxLength={120}
                 className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3
-                  text-text text-sm outline-none focus:border-primary transition-all duration-150
+                  text-text text-base outline-none focus:border-primary transition-all duration-150
                   placeholder:text-muted/40"
               />
             </div>
@@ -264,34 +358,50 @@ export default function AddExpense() {
               Save expense
             </Button>
 
-            {hasAmount && (
-              <div className="border-t border-border pt-4 flex flex-col gap-2">
-                <p className="text-muted text-xs text-center">or pay first, then save</p>
-                {isMobile() ? (
-                  <a
-                    href={upiPreviewLink}
-                    className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl
-                      border border-primary/40 text-primary text-sm font-medium
-                      hover:bg-primary/8 active:scale-[0.97] transition-all duration-150"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
-                    Pay ₹{parseFloat(form.amount).toLocaleString('en-IN')} via UPI
-                  </a>
-                ) : (
-                  <p className="text-center text-muted/60 text-xs">
-                    UPI deep link available on mobile
+          </div>
+        </Card>
+
+        {hasAmount && (
+          <Card>
+            <div className="flex flex-col gap-4">
+              <div>
+                <p className="text-text text-sm font-semibold">Pay via UPI</p>
+                <p className="text-muted text-xs mt-0.5">
+                  Optional — pay before or after saving. PocketPal only tracks the expense; payment happens in your UPI app.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                  Payee UPI ID or phone <span className="normal-case tracking-normal font-normal">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="name@upi  or  9876543210"
+                  value={upiInput}
+                  onChange={(e) => setUpiInput(e.target.value)}
+                  className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3
+                    text-text text-base outline-none focus:border-primary transition-all duration-150
+                    placeholder:text-muted/40"
+                />
+                {upiInput.trim() && upiId !== upiInput.trim() && (
+                  <p className="text-xs text-muted">
+                    Will use: <span className="font-mono text-text">{upiId}</span>
                   </p>
                 )}
               </div>
-            )}
 
-          </div>
-        </Card>
+              {upiId ? (
+                <UpiPicker upiId={upiId} amount={form.amount} />
+              ) : (
+                <p className="text-muted/50 text-xs text-center">
+                  Enter a UPI ID or phone number above to see payment options.
+                </p>
+              )}
+            </div>
+          </Card>
+        )}
       </div>
-
     </div>
   );
 }

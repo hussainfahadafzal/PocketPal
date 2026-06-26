@@ -13,6 +13,8 @@
   body {
     @apply bg-bg text-text font-body;
     -webkit-tap-highlight-color: transparent;
+    /* Eliminate the 300ms tap delay without disabling pinch-zoom */
+    touch-action: manipulation;
     /* Very subtle blue bloom at the very top of the page */
     background-image: radial-gradient(
       ellipse 80% 30% at 50% 0%,
@@ -21,6 +23,14 @@
     );
   }
   * { @apply box-border; }
+
+  /* iOS zooms in when a focused input's font-size < 16px.
+     Set 1rem as the floor; explicit text-* utilities on individual inputs can still override. */
+  input,
+  select,
+  textarea {
+    font-size: 1rem;
+  }
 }
 
 /* ── Custom utilities ────────────────────────────────────────────────── */
@@ -63,6 +73,12 @@
 
 /* ── Keyframes ───────────────────────────────────────────────────────── */
 @keyframes pp-fadein {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Slightly longer with a softer ease so the page feels like it slides in */
+.page-enter {
+  animation-duration: 0.28s;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }

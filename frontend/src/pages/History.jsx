@@ -133,16 +133,16 @@ export default function History() {
             type="month"
             value={month}
             onChange={(e) => setMonth(e.target.value)}
-            className="flex-1 bg-surface border border-border rounded-xl px-3 py-2.5
-              text-text text-sm outline-none focus:border-primary transition-all duration-150
+            className="flex-1 bg-surface border border-border rounded-xl px-3 py-3
+              text-text text-base outline-none focus:border-primary transition-all duration-150
               [color-scheme:dark]"
           />
           <div className="relative flex-1">
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full bg-surface border border-border rounded-xl px-3 pr-8 py-2.5
-                text-text text-sm outline-none focus:border-primary transition-all duration-150
+              className="w-full bg-surface border border-border rounded-xl px-3 pr-8 py-3
+                text-text text-base outline-none focus:border-primary transition-all duration-150
                 appearance-none"
             >
               <option value="">All categories</option>
@@ -228,14 +228,14 @@ export default function History() {
                           <div className="flex items-center gap-1.5 shrink-0 ml-1">
                             <button
                               onClick={() => handleDelete(exp.id)}
-                              className="text-danger text-xs font-semibold px-2.5 py-1 rounded-lg
-                                bg-danger/10 hover:bg-danger/20 active:scale-95 transition-all duration-150"
+                              className="text-danger text-xs font-semibold px-3 py-2 rounded-xl
+                                bg-danger/10 hover:bg-danger/20 active:scale-95 transition-all duration-150 min-h-[36px]"
                             >
                               Delete
                             </button>
                             <button
                               onClick={() => setPendingDelete(null)}
-                              className="text-muted text-xs px-1 hover:text-text transition-colors"
+                              className="text-muted text-xs px-2 py-2 rounded-xl hover:text-text hover:bg-surface-2 transition-all duration-150 min-h-[36px]"
                             >
                               ✕
                             </button>
@@ -243,8 +243,8 @@ export default function History() {
                         ) : (
                           <button
                             onClick={() => setPendingDelete(exp.id)}
-                            className="text-muted/40 hover:text-danger shrink-0 ml-1 p-1 rounded-lg
-                              hover:bg-danger/10 active:scale-95 transition-all duration-150"
+                            className="text-muted/40 hover:text-danger shrink-0 ml-1 p-2.5 rounded-xl
+                              hover:bg-danger/10 active:scale-95 transition-all duration-150 min-w-[44px] min-h-[44px] flex items-center justify-center"
                             aria-label="Delete expense"
                           >
                             <TrashIcon />

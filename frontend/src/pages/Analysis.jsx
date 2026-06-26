@@ -127,14 +127,15 @@ export default function Analysis() {
       <div className="max-w-sm mx-auto px-4 pt-5 flex flex-col gap-5">
 
         {/* ── Header ── */}
-        <div className="flex items-center justify-between">
-          <h1 className="font-heading text-2xl font-semibold text-text">Analysis</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="font-heading text-2xl font-semibold text-text shrink-0">Analysis</h1>
           <input
             type="month"
             value={month}
             onChange={(e) => setMonth(e.target.value)}
-            className="bg-surface border border-border rounded-xl px-3 py-1.5 text-text text-xs
-              outline-none focus:border-primary transition-all duration-150 [color-scheme:dark]"
+            className="bg-surface border border-border rounded-xl px-3 py-2 text-text text-sm
+              outline-none focus:border-primary transition-all duration-150 [color-scheme:dark]
+              min-h-[44px]"
           />
         </div>
 

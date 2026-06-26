@@ -294,7 +294,7 @@ function BalanceRow({ balance, dir, onSettle, settling, delay }) {
             {done || settling ? (
               <motion.div key="loading"
                 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-                className="text-[11px] font-bold px-2.5 py-1 rounded-lg"
+                className="text-xs font-bold px-3 py-2 rounded-xl min-h-[36px] flex items-center"
                 style={{ background: 'rgba(16,185,129,0.18)', color: '#10B981' }}>
                 …
               </motion.div>
@@ -303,7 +303,7 @@ function BalanceRow({ balance, dir, onSettle, settling, delay }) {
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setConfirm(true)}
-                className="text-[11px] font-bold px-2.5 py-1 rounded-lg transition-all"
+                className="text-xs font-bold px-3 py-2 rounded-xl transition-all min-h-[36px]"
                 style={{ background: green ? 'rgba(16,185,129,0.18)' : 'rgba(239,68,68,0.18)', color: green ? '#10B981' : '#EF4444' }}>
                 Settle up
               </motion.button>
@@ -313,13 +313,13 @@ function BalanceRow({ balance, dir, onSettle, settling, delay }) {
                 className="flex gap-1.5">
                 <motion.button whileTap={{ scale: 0.9 }}
                   onClick={handleSettle}
-                  className="text-[11px] font-black px-2.5 py-1 rounded-lg"
+                  className="text-xs font-black px-3 py-2 rounded-xl min-h-[36px]"
                   style={{ background: 'rgba(16,185,129,0.2)', color: '#10B981' }}>
                   Yes
                 </motion.button>
                 <motion.button whileTap={{ scale: 0.9 }}
                   onClick={() => setConfirm(false)}
-                  className="text-[11px] font-bold px-2.5 py-1 rounded-lg"
+                  className="text-xs font-bold px-3 py-2 rounded-xl min-h-[36px]"
                   style={{ background: 'rgba(255,255,255,0.07)', color: '#7A8BAD' }}>
                   No
                 </motion.button>
@@ -412,10 +412,10 @@ function FriendsView({ friends, requests, currentUser, onRefresh }) {
             placeholder={mode === 'email' ? 'friend@example.com' : 'PKT-XXXXX'}
             value={input} onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && sendRequest()}
-            className="flex-1 bg-surface-2 border border-border rounded-xl px-4 py-3 text-text text-sm outline-none focus:border-primary transition-all placeholder:text-muted/40" />
+            className="flex-1 bg-surface-2 border border-border rounded-xl px-4 py-3 text-text text-base outline-none focus:border-primary transition-all placeholder:text-muted/40 min-h-[48px]" />
           <motion.button whileTap={{ scale: 0.93 }} onClick={sendRequest}
             disabled={adding || !input.trim()}
-            className="px-5 py-3 rounded-xl font-bold text-sm text-white disabled:opacity-40 transition-all"
+            className="px-5 py-3 rounded-xl font-bold text-sm text-white disabled:opacity-40 transition-all min-h-[48px] min-w-[56px]"
             style={{ background: 'linear-gradient(135deg, #3B6CFF 0%, #8B5CF6 100%)' }}>
             {adding ? '…' : 'Add'}
           </motion.button>
@@ -566,7 +566,7 @@ function NewSplitView({ friends, currentUser, onCreated }) {
         </div>
         <input type="text" placeholder="What's it for? (e.g. Dinner at Karim's)"
           value={desc} onChange={(e) => setDesc(e.target.value)}
-          className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 text-text text-sm outline-none focus:border-primary transition-all placeholder:text-muted/40" />
+          className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 text-text text-base outline-none focus:border-primary transition-all placeholder:text-muted/40" />
       </motion.div>
 
       {/* Who paid? */}
@@ -673,7 +673,7 @@ function NewSplitView({ friends, currentUser, onCreated }) {
                         <input type="number" inputMode="decimal" min="0" placeholder="0"
                           value={customShares[uid] || ''}
                           onChange={(e) => setCustomShares((prev) => ({ ...prev, [uid]: e.target.value }))}
-                          className="w-full bg-surface-2 border border-border rounded-xl pl-7 pr-2 py-2 text-text text-sm text-right outline-none focus:border-primary transition-all" />
+                          className="w-full bg-surface-2 border border-border rounded-xl pl-7 pr-2 py-2.5 text-text text-base text-right outline-none focus:border-primary transition-all" />
                       </div>
                     </div>
                   );

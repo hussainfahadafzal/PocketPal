@@ -110,7 +110,7 @@ export default function Budgets() {
                   onChange={(e) => setNewCat((c) => ({ ...c, name: e.target.value }))}
                   onKeyDown={(e) => e.key === 'Enter' && addCategory()}
                   className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3
-                    text-text text-sm outline-none focus:border-primary transition-all duration-150
+                    text-text text-base outline-none focus:border-primary transition-all duration-150
                     placeholder:text-muted/40"
                 />
               </div>
@@ -125,7 +125,7 @@ export default function Budgets() {
                   value={newCat.monthly_cap}
                   onChange={(e) => setNewCat((c) => ({ ...c, monthly_cap: e.target.value }))}
                   className="w-full bg-surface-2 border border-border rounded-xl pl-7 pr-2 py-3
-                    text-text text-sm outline-none focus:border-primary transition-all duration-150
+                    text-text text-base outline-none focus:border-primary transition-all duration-150
                     placeholder:text-muted/40"
                 />
               </div>
@@ -140,7 +140,7 @@ export default function Budgets() {
                   <button
                     key={hex}
                     onClick={() => setNewCat((c) => ({ ...c, color: hex }))}
-                    className="w-7 h-7 rounded-full transition-all duration-150 hover:scale-110 active:scale-95"
+                    className="w-9 h-9 rounded-full transition-all duration-150 hover:scale-110 active:scale-95 shrink-0"
                     style={{
                       backgroundColor: hex,
                       boxShadow: newCat.color === hex
@@ -216,14 +216,14 @@ export default function Budgets() {
                       <div className="flex items-center gap-2 shrink-0">
                         <button
                           onClick={() => deleteCategory(cat.id)}
-                          className="text-danger text-xs font-semibold px-2.5 py-1 rounded-lg
+                          className="text-danger text-xs font-semibold px-3 py-2 rounded-xl min-h-[36px]
                             bg-danger/10 hover:bg-danger/20 active:scale-95 transition-all duration-150"
                         >
                           Delete
                         </button>
                         <button
                           onClick={() => setPendingDelete(null)}
-                          className="text-muted text-xs hover:text-text transition-colors px-1"
+                          className="text-muted text-xs hover:text-text transition-all duration-150 px-2 py-2 rounded-xl hover:bg-surface-2 min-h-[36px]"
                         >
                           Cancel
                         </button>
@@ -231,8 +231,8 @@ export default function Budgets() {
                     ) : (
                       <button
                         onClick={() => setPendingDelete(cat.id)}
-                        className="text-muted/40 hover:text-danger shrink-0 p-1 rounded-lg
-                          hover:bg-danger/10 active:scale-95 transition-all duration-150"
+                        className="text-muted/40 hover:text-danger shrink-0 p-2.5 rounded-xl
+                          hover:bg-danger/10 active:scale-95 transition-all duration-150 min-w-[44px] min-h-[44px] flex items-center justify-center"
                         aria-label="Delete category"
                       >
                         <TrashIcon />
