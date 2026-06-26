@@ -15,7 +15,7 @@
 
 ### 🔗 **[Live App → pocketpal4u.vercel.app](https://pocketpal4u.vercel.app)**
 
-*Works in any browser · Installable on your phone (no Play Store needed)*
+*Works in any browser · Installs on your phone in 2 taps · No app store needed*
 
 </div>
 
@@ -33,43 +33,56 @@ Then it makes saving a game: streaks for staying disciplined, a round-up jar tha
 
 ---
 
-## 📲 How to Download & Install
+## 📲 Install on Your Phone (No App Store)
 
-PocketPal is a **Progressive Web App (PWA)** — it runs in your browser *and* installs like a real app, without any app store.
+PocketPal is a **Progressive Web App (PWA)** — it runs in your browser and installs like a native app in 2 taps.
 
-### On Android (Chrome)
-1. Open **[pocketpal4u.vercel.app](https://pocketpal4u.vercel.app)** in Chrome.
-2. Tap the **⋮ menu** (top-right) → **"Add to Home screen"** / **"Install app"**.
-3. Confirm → the PocketPal icon appears on your home screen.
-4. Open it → it runs full-screen, just like a native app.
+### Android (Chrome / Samsung Internet)
 
-### On iPhone (Safari)
-1. Open **[pocketpal4u.vercel.app](https://pocketpal4u.vercel.app)** in Safari.
-2. Tap the **Share** button → **"Add to Home Screen"**.
-3. Tap **Add** → the icon appears on your home screen.
+1. Open **[pocketpal4u.vercel.app](https://pocketpal4u.vercel.app)** in Chrome
+2. Tap the **⋮ menu** (top-right corner) → **"Add to Home screen"** or **"Install app"**
+3. Tap **Install** → the PocketPal icon appears on your home screen
+4. Open it from the home screen → runs full-screen, no browser bar
 
-### On Desktop
-Just open **[pocketpal4u.vercel.app](https://pocketpal4u.vercel.app)** in any browser — or click the **install icon** in the address bar (Chrome/Edge) to install it as a desktop app.
+> If you don't see the prompt, look for a small **install icon (⊕)** in the address bar.
 
-> First load after inactivity may take ~30–50 seconds (free hosting wakes the server up). After that it's instant.
+### iPhone / iPad (Safari only)
+
+1. Open **[pocketpal4u.vercel.app](https://pocketpal4u.vercel.app)** in **Safari** (must be Safari — Chrome on iOS doesn't support PWA install)
+2. Tap the **Share button** (box with arrow pointing up, bottom of screen)
+3. Scroll down → tap **"Add to Home Screen"**
+4. Tap **Add** (top-right) → icon appears on your home screen
+
+### Desktop (Chrome / Edge / Brave)
+
+1. Open **[pocketpal4u.vercel.app](https://pocketpal4u.vercel.app)**
+2. Click the **install icon** in the address bar (looks like a monitor with a download arrow)
+3. Click **Install** → PocketPal opens as a standalone desktop app
+
+Or just use it directly in the browser — no install needed.
+
+> **First load note:** The backend is on Render's free tier and sleeps after 15 minutes of inactivity. The very first open after a break may take **30–50 seconds** to wake up. After that it's instant.
 
 ---
 
 ## 🚀 How to Use
 
 1. **Sign up** — create an account with your name, email, and password. You stay logged in for 7 days.
-2. **Onboard** — enter your current balance and choose your cycle: a *refill date* (when you'll get money) **or** *"make this last X days"* (great for irregular pocket money). Set a savings goal if you want.
-3. **Add categories** — on first login, add a few starter categories (Food, Travel, Shopping, Bills) with one tap, or create your own with spending caps.
-4. **Log an expense** — enter the amount, pick a category, add a note.
-5. **Pay via UPI** — tap *Pay*, enter the payee's UPI ID or phone number, and choose **PhonePe / Google Pay / Paytm** — the amount is prefilled in your UPI app. The expense is logged automatically.
-6. **Watch your day update** — your daily spend limit recalculates instantly, your streak grows, and spare change drops into your savings jar.
-7. **Check Analysis & PocketScore** — see where your money goes and how your financial discipline is trending.
+2. **Set your budget** — enter your current balance and choose your cycle:
+   - *Refill date* — when you'll get money next (salary, pocket money, etc.)
+   - *"Make this last X days"* — great for irregular or one-time amounts
+   - Optionally set a savings goal to reserve from your balance
+3. **Add categories** — create spending categories (Food, Travel, Shopping, Bills) with optional caps, or make your own
+4. **Log an expense** — enter the amount, pick a category, add a note
+5. **Pay via UPI** — tap *Pay*, enter the payee's UPI ID or phone number, then pick **PhonePe / Google Pay / Paytm** — the amount is prefilled in your UPI app
+6. **Watch your limit update** — your daily spend limit recalculates instantly, your streak grows, spare change auto-drops into your savings jar
+7. **Check Analysis & PocketScore** — see where your money goes and how your financial discipline is trending
 
 ---
 
 ## ✨ Features
 
-**🎯 Daily Spend Limit** — the core. One number every morning:
+**🎯 Daily Spend Limit** — the core feature. One number every morning:
 ```
 Daily Limit = (Balance − Savings Goal) ÷ Days Left in Cycle
 ```
@@ -77,30 +90,34 @@ Cycles aren't tied to calendar months — set a refill date or a day count. Work
 
 **🔥 Streak Calendar** — a heatmap of every day you stayed under your limit. The streak counter animates up; miss a day and it resets. Makes you think before that third chai.
 
-**🪙 Savings Jar (Round-up)** — every expense rounds up to the nearest ₹10 and the spare lands in your jar automatically. Set a named goal (Goa trip, new phone) and watch the progress bar fill. A 7-day streak **doubles** your round-ups. *(Virtual tracker — shows what you could save; PocketPal never holds funds.)*
+**🪙 Savings Jar (Round-up)** — every expense rounds up to the nearest ₹10 and the spare change lands in your jar automatically. Set a named goal (Goa trip, new phone) and watch the progress bar fill. A 7-day streak **doubles** your round-ups.
 
-**💳 UPI Payment** — log an expense and pay through **PhonePe, Google Pay, or Paytm** with the amount prefilled. PocketPal only tracks; the payment happens in your own app.
+**💳 UPI Payment** — log an expense and pay through **PhonePe, Google Pay, or Paytm** with the amount prefilled. Enter any UPI ID or phone number — PocketPal normalizes it automatically. Payments happen in your own UPI app; PocketPal only tracks.
 
-**🤖 Pal Nudges** — pattern-based insights from your real spending ("You spend most on Saturdays", "Over budget on Food"), surfaced as a Financial Personality card.
+**🤖 Pal Nudges** — pattern-based insights from your real spending ("You spend most on Saturdays", "Over budget on Food this week"), surfaced as a Financial Personality card on the dashboard.
 
-**💜 PocketScore** — a 0–850 score from budget discipline, saving rate, and streaks, with tips to improve. *(Display-only in MVP; credit/lending is future scope.)*
+**💜 PocketScore** — a 0–850 score computed from budget discipline, saving rate, and streaks, with actionable tips to improve.
 
-**📊 Spending Analysis** — category donut chart + daily spend trend, for any month.
+**📊 Spending Analysis** — category donut chart + daily spend bar chart for any month.
 
-**🔐 Secure Auth** — JWT-based login, 7-day sessions, fully isolated per-user data.
+**🔒 Split Expenses** — split bills with friends by email. Supports equal splits or custom amounts, with settle-up tracking.
+
+**🔐 Secure Auth** — JWT-based login, 7-day sessions, bcrypt-hashed passwords, fully isolated per-user data.
 
 ---
 
-## 📱 App Structure
+## 📱 App Screens
 
 | Tab | What's there |
 |---|---|
 | **Dashboard** | Daily spend limit, streak badge, Pal nudge, quick stats, streak calendar, jar summary |
-| **History** | Full expense log, filterable by month and category |
-| **Budgets** | Create and manage spending categories with caps |
-| **Jar** | Savings jar total, goal progress, round-up toggle |
+| **+ Add** | Log an expense with amount, category, note, and UPI pay button |
+| **History** | Full expense log, filterable by month and category, delete with confirmation |
+| **Split** | Split bills with friends, track who owes what, mark as settled |
+| **Budgets** | Create and manage spending categories with monthly caps |
+| **Jar** | Savings jar total, named goal progress, round-up toggle |
 | **Analysis** | Category donut + daily spend chart, per month |
-| **PocketScore** | Your financial score with improvement tips |
+| **PocketScore** | Financial score breakdown with improvement tips |
 
 ---
 
@@ -108,10 +125,10 @@ Cycles aren't tied to calendar months — set a refill date or a day count. Work
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | React 18, Vite, Tailwind CSS, Framer Motion, Recharts, React Router |
-| **Backend** | FastAPI, SQLAlchemy, Pydantic v2, JWT (python-jose) |
-| **Database** | PostgreSQL (Neon) · SQLite (local dev) |
-| **PWA** | vite-plugin-pwa + Workbox |
+| **Frontend** | React 18, Vite, Tailwind CSS, Framer Motion, Recharts, React Router v6 |
+| **Backend** | FastAPI, SQLAlchemy, Pydantic v2, JWT (python-jose), bcrypt |
+| **Database** | PostgreSQL (Neon serverless) · SQLite (local dev) |
+| **PWA** | vite-plugin-pwa + Workbox (offline support, auto-update) |
 | **Hosting** | Vercel (frontend) · Render (backend) · Neon (database) |
 
 ```
@@ -122,59 +139,144 @@ React PWA (Vercel)  ──── REST / JWT ────▶  FastAPI (Render)  �
 
 ## 💻 Running Locally
 
-Requires **Python 3.12+** and **Node 18+**.
+### Prerequisites
 
-**Backend**
+- **Python 3.12+** — [python.org](https://python.org)
+- **Node.js 18+** — [nodejs.org](https://nodejs.org)
+- **Git** — [git-scm.com](https://git-scm.com)
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/hussainfahadafzal/pocketpal.git
+cd pocketpal
+```
+
+### 2. Backend setup
+
 ```bash
 cd backend
 pip install -r requirements.txt
 ```
-Create `backend/.env`:
+
+Create `backend/app/.env`:
+
 ```env
 DATABASE_URL=sqlite:///./pocketpal.db
-JWT_SECRET_KEY=your-secret-here
+JWT_SECRET_KEY=your-secret-key-here
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=10080
-```
-Generate a secret: `python -c "import secrets; print(secrets.token_hex(32))"`
-```bash
-uvicorn app.main:app --reload      # docs at http://localhost:8000/docs
+FRONTEND_URL=http://localhost:5173
 ```
 
-**Frontend**
+Generate a secure JWT secret:
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Start the backend:
+```bash
+uvicorn app.main:app --reload
+```
+
+API runs at **http://localhost:8000** · Interactive docs at **http://localhost:8000/docs**
+
+### 3. Frontend setup
+
+Open a second terminal:
+
 ```bash
 cd frontend
 npm install
 ```
+
 Create `frontend/.env`:
+
 ```env
 VITE_API_URL=http://localhost:8000
 ```
+
+Start the dev server:
 ```bash
-npm run dev      # http://localhost:5173
+npm run dev
 ```
-Run both in separate terminals.
+
+App runs at **http://localhost:5173**
+
+### Project structure
+
+```
+pocketpal/
+├── backend/
+│   ├── app/
+│   │   ├── main.py          # FastAPI app + CORS
+│   │   ├── models.py        # SQLAlchemy models
+│   │   ├── schemas.py       # Pydantic request/response schemas
+│   │   ├── auth.py          # JWT helpers
+│   │   ├── database.py      # DB connection + session
+│   │   ├── config.py        # Settings (reads .env)
+│   │   ├── utils.py         # Business logic helpers
+│   │   └── routers/         # Route handlers per feature
+│   └── requirements.txt
+└── frontend/
+    ├── src/
+    │   ├── pages/           # One file per screen
+    │   ├── components/      # Shared UI (TopBar, BottomNav, Button, Input)
+    │   ├── context/         # AuthContext (JWT + user state)
+    │   └── main.jsx         # Entry point + SW registration
+    ├── public/icons/        # PWA icons (192px, 512px, maskable)
+    ├── index.html
+    └── vite.config.js       # Vite + PWA config
+```
 
 ---
 
-## ☁️ Deployment
+## ☁️ Deploying Your Own Instance
 
-| Component | Platform | Notes |
-|---|---|---|
-| Database | **Neon** | Free PostgreSQL, permanent (doesn't expire) |
-| Backend | **Render** | Root `backend`, start: `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
-| Frontend | **Vercel** | Root `frontend`, set `VITE_API_URL` to the Render URL |
+### Database — Neon (free, permanent)
 
-Render env vars: `DATABASE_URL`, `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `FRONTEND_URL` (for CORS).
+1. Create a free account at [neon.tech](https://neon.tech)
+2. Create a new project → copy the **connection string** (starts with `postgresql://`)
+3. Use this as your `DATABASE_URL`
 
-> Backend uses Python 3.12 (`runtime.txt`) with `bcrypt==4.1.2` pinned for compatibility.
+### Backend — Render (free tier)
+
+1. Connect your GitHub repo at [render.com](https://render.com)
+2. New **Web Service** → select the repo
+3. Set **Root Directory** to `backend`
+4. **Runtime:** Python 3
+5. **Start command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+6. Add environment variables:
+
+| Key | Value |
+|---|---|
+| `DATABASE_URL` | Your Neon connection string |
+| `JWT_SECRET_KEY` | Random 64-char hex string |
+| `JWT_ALGORITHM` | `HS256` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `10080` |
+| `FRONTEND_URL` | Your Vercel URL (for CORS) |
+
+> Add a `runtime.txt` file in `backend/` containing `python-3.12.0` to pin the Python version.
+
+### Frontend — Vercel (free)
+
+1. Import your GitHub repo at [vercel.com](https://vercel.com)
+2. Set **Root Directory** to `frontend`
+3. Framework preset: **Vite** (auto-detected)
+4. Add environment variable:
+
+| Key | Value |
+|---|---|
+| `VITE_API_URL` | Your Render backend URL (e.g. `https://pocketpal-api.onrender.com`) |
+
+5. Deploy → every `git push` to `main` auto-deploys both frontend and backend.
 
 ---
 
 ## 🗺️ Roadmap
 
-- ✅ **Phase 1 (live)** — Daily limit, UPI payment, budgets, streaks, round-up jar, Pal nudges, PocketScore, PWA
-- 🔜 **Phase 2** — Social layer: split expenses with friends, anonymous savings feed, squad challenges, shareable streaks
+- ✅ **Phase 1 (live)** — Daily limit, UPI payment, budgets, streaks, round-up jar, Pal nudges, PocketScore, split expenses, PWA
+- 🔜 **Phase 2** — Social layer: anonymous savings feed, squad challenges, shareable streaks, recurring expense templates
 - 🔮 **Phase 3** — Intelligence + credit: ML spend forecasting, PocketScore as a real reputation layer, micro-lending
 
 ---
