@@ -42,6 +42,14 @@ export default defineConfig({
       },
 
       workbox: {
+        // Take control of all open tabs immediately after a new SW installs,
+        // so controllerchange fires and the page auto-reloads.
+        clientsClaim: true,
+        skipWaiting: true,
+
+        // Wipe caches from previous SW versions so old bundles don't linger.
+        cleanupOutdatedCaches: true,
+
         // Precache the entire app shell (JS bundles, CSS, HTML, fonts, icons)
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
 
