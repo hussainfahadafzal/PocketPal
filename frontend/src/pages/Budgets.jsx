@@ -42,14 +42,8 @@ export default function Budgets() {
 
   useEffect(() => {
     loadCategories();
-    client.get('/expenses', { params: { month: currentMonth() } })
-      .then((res) => {
-        const spent = {};
-        res.data.forEach((e) => {
-          if (e.category_id) spent[e.category_id] = (spent[e.category_id] || 0) + e.amount;
-        });
-        setCatSpent(spent);
-      })
+    client.get('/categories/spending', { params: { month: currentMonth() } })
+      .then((res) => setCatSpent(res.data))
       .catch(() => {});
   }, []);
 

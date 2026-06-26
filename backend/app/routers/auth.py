@@ -3,10 +3,18 @@ from sqlalchemy.orm import Session
 
 from ..auth import create_access_token, get_current_user, hash_password, verify_password
 from ..database import get_db
-from ..models import User
+from ..models import User, generate_invite_code
 from ..schemas import LoginRequest, Token, UserCreate, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _unique_invite_code(db: Session) -> str:
+    for _ in range(20):
+        code = generate_invite_code()
+        if not db.query(User).filter(User.invite_code == code).first():
+            return code
+    raise RuntimeError("Could not generate a unique invite code")
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -18,6 +26,7 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
         name=payload.name,
         email=payload.email,
         hashed_password=hash_password(payload.password),
+        invite_code=_unique_invite_code(db),
     )
     db.add(user)
     db.commit()

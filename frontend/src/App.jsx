@@ -13,6 +13,7 @@ import Budgets from './pages/Budgets';
 import Analysis from './pages/Analysis';
 import Score from './pages/Score';
 import Jar from './pages/Jar';
+import Split from './pages/Split';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -101,6 +102,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Jar />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/split"
+        element={
+          <ProtectedRoute>
+            <Split />
           </ProtectedRoute>
         }
       />

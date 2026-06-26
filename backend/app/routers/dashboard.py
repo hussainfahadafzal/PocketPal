@@ -12,6 +12,7 @@ from ..utils import (
     get_cycle_context,
     get_daily_spend_limit,
     get_daily_totals_for_cycle,
+    get_daily_totals_for_month,
 )
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -29,18 +30,22 @@ def get_dashboard(
     today = date.today()
     ctx = get_cycle_context(wallet, today)
 
-    # Fetch expenses for the current cycle only
+    # Calendar-month totals: source of truth for balance, limit, spent_today.
+    # This ensures pre-cycle spending in the same month is accounted for.
+    month_daily = get_daily_totals_for_month(db, current_user.id, today.year, today.month)
+    spent_this_month = sum(month_daily.values())
+    spent_today      = month_daily.get(today, 0.0)
+    spent_yesterday  = month_daily.get(today - timedelta(days=1), 0.0)
+    balance_left     = wallet.monthly_balance - spent_this_month
+
+    # Daily limit uses month-based balance so pre-cycle spending lowers it correctly
+    daily_spend_limit = get_daily_spend_limit(wallet, month_daily, today)
+    saved_vs_yesterday = spent_yesterday - spent_today
+
+    # Streak uses cycle-based totals (streak counts from cycle start, not month start)
     daily = get_daily_totals_for_cycle(
         db, current_user.id, ctx["cycle_start"], ctx["effective_today"]
     )
-
-    spent_this_cycle = sum(daily.values())
-    spent_today = daily.get(today, 0.0)
-    spent_yesterday = daily.get(today - timedelta(days=1), 0.0)
-    balance_left = wallet.monthly_balance - spent_this_cycle
-    daily_spend_limit = get_daily_spend_limit(wallet, daily, today)
-    saved_vs_yesterday = spent_yesterday - spent_today
-
     streak_days = compute_current_streak(
         daily, daily_spend_limit, ctx["effective_today"], ctx["cycle_start"]
     )
@@ -48,7 +53,7 @@ def get_dashboard(
     return DashboardResponse(
         daily_spend_limit=daily_spend_limit,
         spent_today=spent_today,
-        spent_this_month=spent_this_cycle,
+        spent_this_month=spent_this_month,
         balance_left=balance_left,
         days_left_in_month=ctx["days_left"],
         saved_vs_yesterday=saved_vs_yesterday,

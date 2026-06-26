@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 
 # ── Auth / User ───────────────────────────────────────────────────────────────
@@ -16,7 +16,17 @@ class UserResponse(BaseModel):
     id: int
     name: str
     email: str
+    invite_code: Optional[str] = None
     created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class UserMini(BaseModel):
+    id: int
+    name: str
+    email: str
+    invite_code: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -99,6 +109,7 @@ class ExpenseResponse(BaseModel):
     created_at: datetime
     roundup_spare: Optional[float]
     roundup_doubled: bool
+    split_share_id: Optional[int] = None
 
     model_config = {"from_attributes": True}
 
@@ -169,3 +180,112 @@ class PocketScoreResponse(BaseModel):
     score_saving: int      # 0–250 component
     score_streak: int      # 0–200 component
     score_caps: int        # 0–100 component
+
+
+# ── Friends ───────────────────────────────────────────────────────────────────
+
+class FriendRequestCreate(BaseModel):
+    email: Optional[EmailStr] = None
+    invite_code: Optional[str] = None
+
+    @model_validator(mode="after")
+    def require_one(self):
+        if not self.email and not self.invite_code:
+            raise ValueError("Provide either email or invite_code")
+        return self
+
+
+class FriendshipResponse(BaseModel):
+    id: int
+    status: str
+    created_at: datetime
+    requester: UserMini
+    addressee: UserMini
+
+    model_config = {"from_attributes": True}
+
+
+# ── Groups ────────────────────────────────────────────────────────────────────
+
+class GroupCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    member_user_ids: List[int]
+
+
+class GroupMemberResponse(BaseModel):
+    user_id: int
+    user: UserMini
+
+    model_config = {"from_attributes": True}
+
+
+class GroupResponse(BaseModel):
+    id: int
+    name: str
+    created_by: int
+    created_at: datetime
+    members: List[GroupMemberResponse]
+
+    model_config = {"from_attributes": True}
+
+
+# ── Splits ────────────────────────────────────────────────────────────────────
+
+class ShareInput(BaseModel):
+    user_id: int
+    share_amount: float = Field(gt=0)
+
+
+class SplitCreate(BaseModel):
+    description: str = Field(min_length=1, max_length=120)
+    total_amount: float = Field(gt=0)
+    paid_by: int                          # user_id of whoever paid the full bill
+    group_id: Optional[int] = None
+    equal_split: bool = False             # if True, divide equally among participants
+    participants: Optional[List[int]] = None  # used with equal_split=True
+    shares: Optional[List[ShareInput]] = None  # used with equal_split=False
+
+    @model_validator(mode="after")
+    def validate_split_mode(self):
+        if self.equal_split:
+            if not self.participants:
+                raise ValueError("participants is required when equal_split is True")
+        else:
+            if not self.shares:
+                raise ValueError("shares is required when equal_split is False")
+        return self
+
+
+class SplitShareResponse(BaseModel):
+    id: int
+    user_id: int
+    share_amount: float
+    settled: bool
+    settled_at: Optional[datetime]
+    user: UserMini
+
+    model_config = {"from_attributes": True}
+
+
+class SplitResponse(BaseModel):
+    id: int
+    description: str
+    total_amount: float
+    paid_by_user_id: int
+    paid_by: UserMini
+    group_id: Optional[int]
+    created_at: datetime
+    shares: List[SplitShareResponse]
+
+    model_config = {"from_attributes": True}
+
+
+class BalanceEntry(BaseModel):
+    friend: UserMini
+    net_amount: float    # absolute value of the net
+    you_owe: float       # how much you owe them (0 if they owe you)
+    they_owe: float      # how much they owe you (0 if you owe them)
+
+
+class SettleRequest(BaseModel):
+    friend_user_id: int
