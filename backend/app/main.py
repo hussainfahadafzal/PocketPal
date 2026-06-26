@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
+from .config import settings
 from .database import Base, engine
 from .models import generate_invite_code
 from .routers import auth as auth_router
@@ -35,9 +36,13 @@ app.add_middleware(
 
 def _migrate():
     """
-    Add new columns to existing tables without touching existing data.
-    Safe to run on every startup (idempotent via PRAGMA table_info checks).
+    Add new columns to existing SQLite tables without touching existing data.
+    Only runs on SQLite (local dev) — PRAGMA is SQLite-specific.
+    On PostgreSQL (Neon/Render), Base.metadata.create_all handles the schema.
     """
+    if not settings.DATABASE_URL.startswith("sqlite"):
+        return
+
     with engine.connect() as conn:
         # ── wallets ──────────────────────────────────────────────────────────
         existing_wallet_cols = {
