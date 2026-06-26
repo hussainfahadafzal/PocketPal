@@ -75,6 +75,16 @@ Pattern-based observations from your actual spending. When you tend to overspend
 
 Category breakdown (donut chart) and daily spend trend (bar chart), for any month you pick.
 
+**Split Expenses**
+
+Split any bill with friends and track who owes whom — built into the same budget you already use.
+
+Add friends by email or a `PKT-XXXXX` invite code (no open name search — privacy first). Create a split, choose equal or custom shares, and PocketPal auto-records each person's share as an expense in their own budget so it counts against their daily limit without any manual entry.
+
+The Balances tab runs a **Min Cash Flow** simplification algorithm on the full debt graph. If Alice pays dinner (B and C owe her), then Bob pays taxi (Alice and C owe him), PocketPal collapses the four gross debts into the minimum number of payments — B drops out because his net position is zero, leaving just `C → Alice ₹X`. You always see the smallest number of payments you need to make, not a wall of individual debts.
+
+Settling is one tap: confirm → checkmark animation → the row slides out live. When your last outstanding balance clears, a confetti burst fires. Settlement marks the underlying DB records as settled; the simplified view auto-updates on the next re-fetch.
+
 **PWA**
 
 Add to Home Screen on Android or iOS. Opens full-screen, no browser chrome, no app store.
@@ -83,12 +93,13 @@ Add to Home Screen on Android or iOS. Opens full-screen, no browser chrome, no a
 
 ## App Structure
 
-Five tabs in the bottom nav:
+Six tabs in the bottom nav:
 
 | Tab | What's there |
 |---|---|
-| **Dashboard** | Daily spend limit, streak badge, Pal nudge, quick stats, streak calendar, savings jar summary |
+| **Home** | Daily spend limit, streak badge, Pal nudge, quick stats, streak calendar, savings jar summary |
 | **History** | Full expense log, filterable by month and category |
+| **Split** | Simplified balance hero, friends management, new split form, split history |
 | **Budgets** | Create and manage spending categories with optional caps |
 | **Jar** | Savings jar total, goal progress, round-up toggle, set/edit goal |
 | **Analysis** | Donut chart by category + daily bar chart, per month |
@@ -179,9 +190,10 @@ Set `DATABASE_URL`, `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINU
 
 The MVP is live. Here's what comes next:
 
-- **Phase 2** — social layer: anonymous savings feed, squad challenges, shareable streak cards, push notifications
-- **Phase 3** — intelligence: ML-based spend forecasting, smarter Pal nudges, bank statement import
-- **Phase 4** — credit: PocketScore as a real financial reputation layer, micro-lending through NBFC partners
+- **Phase 2** ✅ — social layer: split expenses, friends via invite code, debt simplification, settlement animations
+- **Phase 3** — community: anonymous savings feed, squad challenges, shareable streak cards, push notifications
+- **Phase 4** — intelligence: ML-based spend forecasting, smarter Pal nudges, bank statement import
+- **Phase 5** — credit: PocketScore as a real financial reputation layer, micro-lending through NBFC partners
 
 ---
 
