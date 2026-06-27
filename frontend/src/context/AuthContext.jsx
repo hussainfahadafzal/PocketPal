@@ -17,6 +17,12 @@ function _readStoredUser() {
   }
 }
 
+function _getInitialUser() {
+  const cachedUser = _readStoredUser();
+  if (cachedUser) return cachedUser;
+  return localStorage.getItem('token') ? { id: 'cached', name: '', email: '' } : null;
+}
+
 function _writeStoredUser(user) {
   if (user) {
     localStorage.setItem('user', JSON.stringify(user));
@@ -37,8 +43,9 @@ function _clearSession(setUser) {
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => _readStoredUser());
+  const [user, setUser] = useState(() => _getInitialUser());
   const [loading, setLoading] = useState(true);
+  const [hasStoredSession, setHasStoredSession] = useState(() => Boolean(localStorage.getItem('token')));
   const navigate = useNavigate();
 
   // Rehydrate session from the stored token on first load.
@@ -47,13 +54,19 @@ export function AuthProvider({ children }) {
     const cachedUser = _readStoredUser();
 
     if (!token) {
+      setUser(null);
+      setHasStoredSession(false);
       setLoading(false);
       return;
     }
 
     if (cachedUser) {
       setUser(cachedUser);
+    } else {
+      setUser({ id: 'cached', name: '', email: '' });
     }
+    setHasStoredSession(true);
+    setLoading(false);
 
     client
       .get('/auth/me')
@@ -63,15 +76,14 @@ export function AuthProvider({ children }) {
         setUser(nextUser);
       })
       .catch((err) => {
-        // Only purge on a real 401 (expired/invalid token).
-        // Network issues should not force a logout when a valid cached session exists.
-        if (err.response?.status === 401) {
-          _clearSession(setUser);
+        // Keep the saved session alive for reloads and temporary network issues.
+        // Only clear it when the user explicitly logs out.
+        if (err.response?.status === 401 && !cachedUser) {
+          setUser({ id: 'cached', name: '', email: '' });
         } else if (cachedUser) {
           setUser(cachedUser);
         }
-      })
-      .finally(() => setLoading(false));
+      });
   }, []);
 
   // After a successful auth, check whether the wallet is configured and route accordingly
@@ -113,11 +125,12 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(() => {
     _clearSession(setUser);
+    setHasStoredSession(false);
     navigate('/login');
   }, [navigate]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, hasStoredSession, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

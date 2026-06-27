@@ -13,19 +13,11 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
-// Keep the current session intact unless the auth check itself says the token is invalid.
-// This prevents transient API failures from unintentionally logging users out.
+// Keep the current session intact unless the user explicitly logs out.
+// Transient auth or network issues should not clear the saved session.
 client.interceptors.response.use(
   (response) => response,
-  (error) => {
-    const isAuthEndpoint = error.config?.url?.startsWith('/auth/');
-    if (error.response?.status === 401 && isAuthEndpoint) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      sessionStorage.removeItem('pocketpal_lastStreak');
-    }
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 export default client;
