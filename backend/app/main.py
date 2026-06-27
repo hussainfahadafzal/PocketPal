@@ -93,6 +93,10 @@ def _migrate():
                     {"code": code, "uid": uid},
                 )
 
+        # ── password_reset_tokens (new table — handled by create_all on Postgres) ──
+        # SQLite only: create_all won't add columns but will create new tables.
+        # Nothing extra needed here — Base.metadata.create_all covers it.
+
         conn.commit()
 
 

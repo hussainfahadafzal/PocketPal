@@ -1,6 +1,6 @@
 import random
 import string
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import (
     Boolean, Column, Date, DateTime, Float,
@@ -84,6 +84,21 @@ class Expense(Base):
 
     user = relationship("User", back_populates="expenses")
     category = relationship("Category", back_populates="expenses")
+
+
+# ── Password Reset ───────────────────────────────────────────────────────────
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
+    token      = Column(String, unique=True, index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+    used       = Column(Boolean, default=False, nullable=False)
+
+    user = relationship("User")
 
 
 # ── Social: Friendships ───────────────────────────────────────────────────────

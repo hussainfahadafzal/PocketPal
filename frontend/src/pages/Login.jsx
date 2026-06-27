@@ -115,6 +115,15 @@ export default function Login() {
               autoComplete="current-password"
             />
 
+            <div className="flex justify-end -mt-1">
+              <Link
+                to="/forgot-password"
+                className="text-xs text-muted hover:text-primary transition-colors duration-150"
+              >
+                Forgot password?
+              </Link>
+            </div>
+
             {error && (
               <p className="text-danger text-xs text-center">{error}</p>
             )}

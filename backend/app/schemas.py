@@ -1,7 +1,14 @@
 from datetime import date, datetime
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
-from pydantic import BaseModel, EmailStr, Field, model_validator
+from pydantic import BaseModel, EmailStr, Field, PlainSerializer, model_validator
+
+# Naive datetimes from the DB are UTC. Appending Z tells the browser to treat
+# them as UTC so it converts to the user's local timezone correctly.
+UtcDatetime = Annotated[
+    datetime,
+    PlainSerializer(lambda v: v.strftime('%Y-%m-%dT%H:%M:%SZ'), return_type=str),
+]
 
 
 # ── Auth / User ───────────────────────────────────────────────────────────────
@@ -17,7 +24,7 @@ class UserResponse(BaseModel):
     name: str
     email: str
     invite_code: Optional[str] = None
-    created_at: datetime
+    created_at: UtcDatetime
 
     model_config = {"from_attributes": True}
 
@@ -106,7 +113,7 @@ class ExpenseResponse(BaseModel):
     amount: float
     note: Optional[str]
     category_id: Optional[int]
-    created_at: datetime
+    created_at: UtcDatetime
     roundup_spare: Optional[float]
     roundup_doubled: bool
     split_share_id: Optional[int] = None
@@ -198,7 +205,7 @@ class FriendRequestCreate(BaseModel):
 class FriendshipResponse(BaseModel):
     id: int
     status: str
-    created_at: datetime
+    created_at: UtcDatetime
     requester: UserMini
     addressee: UserMini
 
@@ -223,7 +230,7 @@ class GroupResponse(BaseModel):
     id: int
     name: str
     created_by: int
-    created_at: datetime
+    created_at: UtcDatetime
     members: List[GroupMemberResponse]
 
     model_config = {"from_attributes": True}
@@ -261,7 +268,7 @@ class SplitShareResponse(BaseModel):
     user_id: int
     share_amount: float
     settled: bool
-    settled_at: Optional[datetime]
+    settled_at: Optional[UtcDatetime]
     user: UserMini
 
     model_config = {"from_attributes": True}
@@ -274,7 +281,7 @@ class SplitResponse(BaseModel):
     paid_by_user_id: int
     paid_by: UserMini
     group_id: Optional[int]
-    created_at: datetime
+    created_at: UtcDatetime
     shares: List[SplitShareResponse]
 
     model_config = {"from_attributes": True}
@@ -289,3 +296,14 @@ class BalanceEntry(BaseModel):
 
 class SettleRequest(BaseModel):
     friend_user_id: int
+
+
+# ── Password reset ────────────────────────────────────────────────────────────
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(min_length=8)
