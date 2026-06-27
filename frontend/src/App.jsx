@@ -6,7 +6,6 @@ import Spinner from './components/Spinner';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import AddExpense from './pages/AddExpense';
@@ -32,7 +31,7 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-const NO_NAV = ['/login', '/register', '/onboarding', '/add', '/forgot-password', '/reset-password'];
+const NO_NAV = ['/login', '/register', '/onboarding', '/add', '/forgot-password'];
 
 export default function App() {
   const location = useLocation();
@@ -44,7 +43,6 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
       <Route
         path="/onboarding"
         element={
