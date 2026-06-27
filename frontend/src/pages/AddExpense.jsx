@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import jsQR from 'jsqr';
 import client from '../api/client';
 import Button from '../components/Button';
 import Card from '../components/Card';
@@ -86,8 +87,11 @@ const UPI_APPS = [
 ];
 
 // ── QR Scanner ──────────────────────────────────────────────────────────────
+// Uses jsQR (pure JS, works on iOS Safari + all browsers) to decode
+// QR codes from a live camera stream drawn to a hidden canvas each frame.
 function QRScanner({ onScan, onClose }) {
   const videoRef = useRef(null);
+  const canvasRef = useRef(null);
   const [status, setStatus] = useState('starting'); // starting | scanning | error
   const [errorType, setErrorType] = useState('');
 
@@ -96,15 +100,9 @@ function QRScanner({ onScan, onClose }) {
     let rafId = null;
 
     const start = async () => {
-      if (!('BarcodeDetector' in window)) {
-        setStatus('error');
-        setErrorType('no_api');
-        return;
-      }
-
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' }, width: { ideal: 720 } },
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } },
           audio: false,
         });
         if (!videoRef.current) return;
@@ -112,18 +110,26 @@ function QRScanner({ onScan, onClose }) {
         await videoRef.current.play();
         setStatus('scanning');
 
-        const detector = new BarcodeDetector({ formats: ['qr_code'] });
+        const tick = () => {
+          const video = videoRef.current;
+          const canvas = canvasRef.current;
+          if (!video || !canvas) return;
 
-        const tick = async () => {
-          if (!videoRef.current) return;
-          try {
-            const codes = await detector.detect(videoRef.current);
-            if (codes.length > 0) {
+          if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvas.width  = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+              inversionAttempts: 'dontInvert',
+            });
+            if (code?.data) {
               stop();
-              onScan(codes[0].rawValue);
+              onScan(code.data);
               return;
             }
-          } catch {}
+          }
           rafId = requestAnimationFrame(tick);
         };
         rafId = requestAnimationFrame(tick);
@@ -142,35 +148,34 @@ function QRScanner({ onScan, onClose }) {
     return stop;
   }, []);
 
-  const handleFile = async (e) => {
+  // Fallback: user picks an image, we decode it with jsQR via canvas
+  const handleFile = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!('BarcodeDetector' in window)) {
-      setStatus('error');
-      setErrorType('no_api');
-      return;
-    }
-    try {
-      const bitmap = await createImageBitmap(file);
-      const detector = new BarcodeDetector({ formats: ['qr_code'] });
-      const codes = await detector.detect(bitmap);
-      if (codes.length > 0) {
-        onScan(codes[0].rawValue);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width  = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code?.data) {
+        onScan(code.data);
       } else {
         setStatus('error');
         setErrorType('not_found');
       }
-    } catch {
-      setStatus('error');
-      setErrorType('not_found');
-    }
+      URL.revokeObjectURL(img.src);
+    };
+    img.src = URL.createObjectURL(file);
   };
 
   const errorText = {
-    permission: 'Camera access denied. Allow camera in your browser settings.',
-    camera: 'Could not open camera.',
-    no_api: 'QR scanning needs Chrome on Android or Safari 17+.',
-    not_found: 'No QR code found in that image.',
+    permission: 'Camera access denied. Allow camera in your browser settings and try again.',
+    camera: 'Could not open camera. Try picking an image from your gallery instead.',
+    not_found: 'No QR code found in that image. Try again with a clearer photo.',
   };
 
   return (
@@ -178,6 +183,9 @@ function QRScanner({ onScan, onClose }) {
       className="fixed inset-0 z-[99999] flex flex-col"
       style={{ background: 'rgba(4,6,18,0.98)' }}
     >
+      {/* Hidden canvas used for jsQR frame decoding — never shown */}
+      <canvas ref={canvasRef} className="hidden" />
+
       {/* Header */}
       <div
         className="flex items-center justify-between px-4 shrink-0"
@@ -212,15 +220,13 @@ function QRScanner({ onScan, onClose }) {
             <p className="text-white/60 text-sm leading-relaxed">
               {errorText[errorType] || 'Something went wrong.'}
             </p>
-            {errorType !== 'no_api' && (
-              <label
-                className="px-5 py-2.5 rounded-xl border border-white/20 text-white text-sm font-medium
-                  cursor-pointer active:opacity-60 transition-opacity"
-              >
-                Pick image from gallery
-                <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
-              </label>
-            )}
+            <label
+              className="px-5 py-2.5 rounded-xl border border-white/20 text-white text-sm font-medium
+                cursor-pointer active:opacity-60 transition-opacity"
+            >
+              Pick image from gallery
+              <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
+            </label>
           </div>
         ) : (
           <>
@@ -240,12 +246,9 @@ function QRScanner({ onScan, onClose }) {
                 'bottom-0 left-0 border-l-[3px] border-b-[3px] rounded-bl-2xl',
                 'bottom-0 right-0 border-r-[3px] border-b-[3px] rounded-br-2xl',
               ].map((cls, i) => (
-                <span
-                  key={i}
-                  className={`absolute w-7 h-7 border-primary ${cls}`}
-                />
+                <span key={i} className={`absolute w-7 h-7 border-primary ${cls}`} />
               ))}
-              {/* Scan line */}
+              {/* Animated scan line */}
               {status === 'scanning' && (
                 <div
                   className="absolute left-2 right-2 h-px"
@@ -263,7 +266,7 @@ function QRScanner({ onScan, onClose }) {
             </p>
 
             <label className="text-white/30 text-xs underline underline-offset-2 cursor-pointer active:opacity-60">
-              Or pick an image from gallery
+              Or pick a screenshot from gallery
               <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
             </label>
           </>
