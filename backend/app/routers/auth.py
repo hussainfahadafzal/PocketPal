@@ -1,7 +1,6 @@
 import random
 from datetime import datetime, timedelta
 
-import resend
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -33,10 +32,18 @@ def _send_otp_email(to_email: str, user_name: str, otp: str) -> None:
     if not settings.RESEND_API_KEY:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Add RESEND_API_KEY to your Render environment variables.",
+            detail="Email not configured. Add RESEND_API_KEY on Render.",
         )
 
-    resend.api_key = settings.RESEND_API_KEY
+    try:
+        import resend as _resend
+    except ImportError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="resend package not installed. Redeploy after adding it to requirements.txt.",
+        )
+
+    _resend.api_key = settings.RESEND_API_KEY
 
     html = f"""
 <!DOCTYPE html>
@@ -83,7 +90,7 @@ def _send_otp_email(to_email: str, user_name: str, otp: str) -> None:
 </html>
 """
 
-    resend.Emails.send({
+    _resend.Emails.send({
         "from": "PocketPal <onboarding@resend.dev>",
         "to": [to_email],
         "subject": f"{otp} is your PocketPal reset code",

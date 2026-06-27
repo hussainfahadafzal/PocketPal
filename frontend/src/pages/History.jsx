@@ -119,6 +119,28 @@ export default function History() {
 
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
+  const exportCSV = () => {
+    const headers = ['Date', 'Time', 'Category', 'Note', 'Amount (INR)'];
+    const rows = expenses.map((exp) => {
+      const d = new Date(exp.created_at);
+      const date = d.toLocaleDateString('en-IN');
+      const time = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const cat = catById[exp.category_id]?.name || '';
+      const note = exp.note || '';
+      return [date, time, cat, note, exp.amount]
+        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+        .join(',');
+    });
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pocketpal-${month}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="min-h-screen bg-bg pb-28 page-enter">
       <TopBar showLogout />
@@ -160,7 +182,21 @@ export default function History() {
         {!loading && !error && expenses.length > 0 && (
           <div className="flex items-center justify-between bg-surface border border-border rounded-2xl px-4 py-3 mb-5">
             <span className="text-muted text-sm">Total for period</span>
-            <span className="font-heading text-lg font-bold text-text">₹{inr(total)}</span>
+            <div className="flex items-center gap-3">
+              <span className="font-heading text-lg font-bold text-text">₹{inr(total)}</span>
+              <button
+                onClick={exportCSV}
+                title="Export as CSV"
+                className="flex items-center gap-1.5 text-xs font-medium text-primary border border-primary/30
+                  rounded-lg px-2.5 py-1.5 hover:bg-primary/10 active:scale-95 transition-all duration-150"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                CSV
+              </button>
+            </div>
           </div>
         )}
 
