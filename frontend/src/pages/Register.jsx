@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import AuthLoadingState from '../components/AuthLoadingState';
 
 const SPRING = { duration: 0.5, ease: [0.22, 1, 0.36, 1] };
 const containerVariants = {
@@ -153,9 +154,13 @@ export default function Register() {
               <p className="text-danger text-xs text-center">{errors.api}</p>
             )}
 
-            <Button type="submit" loading={loading} className="mt-1">
-              Create account
-            </Button>
+            {loading ? (
+              <AuthLoadingState title="Creating your account" subtitle="Setting up your wallet and personal space" />
+            ) : (
+              <Button type="submit" className="mt-1">
+                Create account
+              </Button>
+            )}
           </form>
 
           <p className="text-center text-sm text-muted mt-5">

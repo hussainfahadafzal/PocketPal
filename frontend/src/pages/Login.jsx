@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import AuthLoadingState from '../components/AuthLoadingState';
 
 const SPRING = { duration: 0.5, ease: [0.22, 1, 0.36, 1] };
 const containerVariants = {
@@ -136,11 +137,15 @@ export default function Login() {
               <p className="text-danger text-xs text-center">{error}</p>
             )}
 
-            <Button type="submit" loading={loading} className="mt-1">
-              Sign in
-            </Button>
+            {loading ? (
+              <AuthLoadingState title="Signing you in" subtitle="Preparing your workspace and syncing your account" />
+            ) : (
+              <Button type="submit" className="mt-1">
+                Sign in
+              </Button>
+            )}
             <p className="text-[11px] text-center text-muted/80 min-h-4">
-              {loading ? 'Signing you in… Please wait.' : 'We’ll keep you signed in on this device.'}
+              {loading ? 'Please wait while we verify your details.' : 'We’ll keep you signed in on this device.'}
             </p>
           </form>
 
