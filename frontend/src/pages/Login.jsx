@@ -95,24 +95,32 @@ export default function Login() {
         >
           <h2 className="font-heading text-lg font-semibold text-text mb-5">Welcome back</h2>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4" aria-busy={loading}>
             <Input
               label="Email"
               type="email"
               placeholder="you@university.edu"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (error) setError('');
+              }}
               required
               autoComplete="email"
+              disabled={loading}
             />
             <Input
               label="Password"
               type="password"
               placeholder="••••••••"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (error) setError('');
+              }}
               required
               autoComplete="current-password"
+              disabled={loading}
             />
 
             <div className="flex justify-end -mt-1">
@@ -131,6 +139,9 @@ export default function Login() {
             <Button type="submit" loading={loading} className="mt-1">
               Sign in
             </Button>
+            <p className="text-[11px] text-center text-muted/80 min-h-4">
+              {loading ? 'Signing you in… Please wait.' : 'We’ll keep you signed in on this device.'}
+            </p>
           </form>
 
           <p className="text-center text-sm text-muted mt-5">

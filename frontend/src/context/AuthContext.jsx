@@ -5,8 +5,25 @@ import client from '../api/client';
 const AuthContext = createContext(null);
 
 // Keys that must be wiped between users.
-const LS_KEYS = ['token'];
+const LS_KEYS = ['token', 'user'];
 const SS_KEYS = ['pocketpal_lastStreak'];
+
+function _readStoredUser() {
+  try {
+    const raw = localStorage.getItem('user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function _writeStoredUser(user) {
+  if (user) {
+    localStorage.setItem('user', JSON.stringify(user));
+  } else {
+    localStorage.removeItem('user');
+  }
+}
 
 /**
  * Wipe every piece of per-user state so the next account starts completely
@@ -20,26 +37,38 @@ function _clearSession(setUser) {
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => _readStoredUser());
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Rehydrate session from the stored token on first load
+  // Rehydrate session from the stored token on first load.
   useEffect(() => {
     const token = localStorage.getItem('token');
+    const cachedUser = _readStoredUser();
+
     if (!token) {
       setLoading(false);
       return;
     }
+
+    if (cachedUser) {
+      setUser(cachedUser);
+    }
+
     client
       .get('/auth/me')
-      .then((res) => setUser(res.data))
+      .then((res) => {
+        const nextUser = res.data;
+        _writeStoredUser(nextUser);
+        setUser(nextUser);
+      })
       .catch((err) => {
         // Only purge on a real 401 (expired/invalid token).
-        // Network errors and server hiccups don't expire the token, so keep the
-        // user logged in and let them retry when connectivity is restored.
+        // Network issues should not force a logout when a valid cached session exists.
         if (err.response?.status === 401) {
           _clearSession(setUser);
+        } else if (cachedUser) {
+          setUser(cachedUser);
         }
       })
       .finally(() => setLoading(false));
@@ -62,7 +91,9 @@ export function AuthProvider({ children }) {
     const res = await client.post('/auth/login', { email, password });
     localStorage.setItem('token', res.data.access_token);
     const me = await client.get('/auth/me');
-    setUser(me.data);
+    const nextUser = me.data;
+    _writeStoredUser(nextUser);
+    setUser(nextUser);
     await redirectAfterAuth();
   };
 
@@ -74,7 +105,9 @@ export function AuthProvider({ children }) {
     const res = await client.post('/auth/login', { email, password });
     localStorage.setItem('token', res.data.access_token);
     const me = await client.get('/auth/me');
-    setUser(me.data);
+    const nextUser = me.data;
+    _writeStoredUser(nextUser);
+    setUser(nextUser);
     navigate('/onboarding');
   };
 
