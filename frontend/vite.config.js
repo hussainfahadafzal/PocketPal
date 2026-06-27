@@ -9,31 +9,33 @@ export default defineConfig({
       registerType: 'autoUpdate',
 
       // Ensure icons are included in the precache
-      includeAssets: ['icons/*.png'],
+      includeAssets: ['icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'favicon.png'],
 
       manifest: {
         name: 'PocketPal',
         short_name: 'PocketPal',
         description: 'Your daily finance companion — spend smart, save more.',
-        theme_color: '#3B6CFF',
-        background_color: '#0B1424',
+        theme_color: '#0B0B14',
+        background_color: '#0B0B14',
         display: 'standalone',
         orientation: 'portrait-primary',
         start_url: '/',
         scope: '/',
         icons: [
           {
-            src: '/icons/icon-192.png',
+            src: '/icon-192.png',
             sizes: '192x192',
             type: 'image/png',
+            purpose: 'any',
           },
           {
-            src: '/icons/icon-512.png',
+            src: '/icon-512.png',
             sizes: '512x512',
             type: 'image/png',
+            purpose: 'any',
           },
           {
-            src: '/icons/icon-maskable-512.png',
+            src: '/icon-maskable-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
