@@ -222,6 +222,8 @@ class DirectMessage(Base):
     sender_id   = Column(Integer, ForeignKey("users.id"), nullable=False)
     receiver_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     content     = Column(String, nullable=False)
+    is_read     = Column(Boolean, default=False, nullable=False)
+    read_at     = Column(DateTime, nullable=True)
     created_at  = Column(DateTime, default=datetime.now)
 
     sender   = relationship("User", foreign_keys=[sender_id])

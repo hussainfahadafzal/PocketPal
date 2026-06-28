@@ -1,3 +1,7 @@
+from datetime import datetime
+from time import time
+import threading
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
@@ -8,6 +12,11 @@ from ..models import DirectMessage, Friendship, User
 from ..schemas import DirectMessageCreate, DirectMessageResponse
 
 router = APIRouter(prefix="/chat", tags=["chat"])
+
+# In-memory typing state: {(typer_id, receiver_id): last_typed_timestamp}
+_typing: dict[tuple[int, int], float] = {}
+_typing_lock = threading.Lock()
+TYPING_TTL = 3.5  # seconds before "typing..." disappears
 
 
 def _are_friends(db: Session, user_id: int, friend_id: int) -> bool:
@@ -23,6 +32,71 @@ def _are_friends(db: Session, user_id: int, friend_id: int) -> bool:
         .first()
     ) is not None
 
+
+# ── Sub-path routes defined before /{friend_id} to avoid shadowing ───────────
+
+@router.post("/{friend_id}/read", status_code=204)
+def mark_read(
+    friend_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Mark all messages sent by friend to current_user as read."""
+    if not _are_friends(db, current_user.id, friend_id):
+        raise HTTPException(403, "Not friends")
+    now = datetime.now()
+    db.query(DirectMessage).filter(
+        DirectMessage.sender_id == friend_id,
+        DirectMessage.receiver_id == current_user.id,
+        DirectMessage.is_read == False,  # noqa: E712
+    ).update({"is_read": True, "read_at": now})
+    db.commit()
+
+
+@router.get("/{friend_id}/read-status")
+def read_status(
+    friend_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return the highest id of my messages that friend has already read."""
+    if not _are_friends(db, current_user.id, friend_id):
+        raise HTTPException(403, "Not friends")
+    row = (
+        db.query(DirectMessage.id)
+        .filter(
+            DirectMessage.sender_id == current_user.id,
+            DirectMessage.receiver_id == friend_id,
+            DirectMessage.is_read == True,  # noqa: E712
+        )
+        .order_by(DirectMessage.id.desc())
+        .first()
+    )
+    return {"last_read_id": row[0] if row else 0}
+
+
+@router.post("/{friend_id}/typing", status_code=204)
+def set_typing(
+    friend_id: int,
+    current_user: User = Depends(get_current_user),
+):
+    """Register that current_user is actively typing to friend_id."""
+    with _typing_lock:
+        _typing[(current_user.id, friend_id)] = time()
+
+
+@router.get("/{friend_id}/typing")
+def get_typing(
+    friend_id: int,
+    current_user: User = Depends(get_current_user),
+):
+    """Return whether friend_id is currently typing to current_user."""
+    with _typing_lock:
+        ts = _typing.get((friend_id, current_user.id), 0.0)
+    return {"is_typing": (time() - ts) < TYPING_TTL}
+
+
+# ── Base message routes ───────────────────────────────────────────────────────
 
 @router.get("/{friend_id}", response_model=list[DirectMessageResponse])
 def list_messages(

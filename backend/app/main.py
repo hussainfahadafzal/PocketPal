@@ -96,9 +96,16 @@ def _migrate():
                     {"code": code, "uid": uid},
                 )
 
-        # ── password_reset_tokens (new table — handled by create_all on Postgres) ──
-        # SQLite only: create_all won't add columns but will create new tables.
-        # Nothing extra needed here — Base.metadata.create_all covers it.
+        # ── direct_messages: is_read + read_at ──────────────────────────────────
+        existing_dm_cols = {
+            row[1] for row in conn.execute(text("PRAGMA table_info(direct_messages)"))
+        }
+        for col, ddl in [
+            ("is_read", "BOOLEAN NOT NULL DEFAULT 0"),
+            ("read_at",  "DATETIME"),
+        ]:
+            if existing_dm_cols and col not in existing_dm_cols:
+                conn.execute(text(f"ALTER TABLE direct_messages ADD COLUMN {col} {ddl}"))
 
         conn.commit()
 

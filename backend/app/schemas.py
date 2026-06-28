@@ -394,5 +394,6 @@ class DirectMessageResponse(BaseModel):
     content: str
     created_at: UtcDatetime
     is_mine: bool = False
+    is_read: bool = False
 
     model_config = {"from_attributes": True}
