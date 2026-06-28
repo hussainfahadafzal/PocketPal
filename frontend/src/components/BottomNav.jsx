@@ -1,5 +1,22 @@
 import { createPortal } from 'react-dom';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+
+const AVATAR_KEY = 'pocketpal_avatar';
+
+const AVATAR_GRADIENTS = [
+  ['#3B6CFF', '#8B5CF6'],
+  ['#10B981', '#06B6D4'],
+  ['#EC4899', '#F97316'],
+  ['#F59E0B', '#EF4444'],
+];
+function avatarColors(name = '') {
+  return AVATAR_GRADIENTS[(name?.charCodeAt(0) || 0) % AVATAR_GRADIENTS.length];
+}
+function getInitials(name = '') {
+  return name?.trim().split(/\s+/).map((w) => w[0] ?? '').join('').slice(0, 2).toUpperCase() || '?';
+}
 
 const tabs = [
   {
@@ -42,19 +59,39 @@ const tabs = [
         d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
     ),
   },
-  {
-    label: 'Me',
-    path: '/profile',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round"
-        d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-    ),
-  },
+  { label: 'Me', path: '/profile' },
 ];
+
+function MeAvatar({ user, photo, active }) {
+  const [ca, cb] = avatarColors(user?.name || '');
+  const grad = `linear-gradient(135deg,${ca},${cb})`;
+
+  return (
+    <div
+      className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center text-[9px] font-black text-white select-none transition-all duration-200"
+      style={{
+        background: photo ? '#000' : grad,
+        boxShadow: active ? `0 0 0 2px #070918, 0 0 0 3.5px ${ca}` : 'none',
+      }}
+    >
+      {photo
+        ? <img src={photo} className="w-full h-full object-cover" alt="" />
+        : getInitials(user?.name)}
+    </div>
+  );
+}
 
 export default function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [avatarPhoto, setAvatarPhoto] = useState(() => localStorage.getItem(AVATAR_KEY));
+
+  useEffect(() => {
+    const handler = (e) => setAvatarPhoto(e.detail);
+    window.addEventListener('avatar:update', handler);
+    return () => window.removeEventListener('avatar:update', handler);
+  }, []);
 
   return createPortal(
     <nav
@@ -67,7 +104,7 @@ export default function BottomNav() {
         background: 'rgba(10, 14, 30, 0.97)',
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
-        borderTop: '1px solid rgba(59,108,255,0.12)',
+        borderTop: '1px solid rgba(59,108,255,0.10)',
         boxShadow: '0 -4px 24px rgba(0,0,0,0.35)',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         transform: 'translateZ(0)',
@@ -78,6 +115,8 @@ export default function BottomNav() {
       <div className="max-w-sm mx-auto flex">
         {tabs.map((tab) => {
           const active = location.pathname === tab.path;
+          const isMe = tab.path === '/profile';
+
           return (
             <button
               key={tab.path}
@@ -86,24 +125,27 @@ export default function BottomNav() {
                 transition-all duration-200 active:opacity-60
                 ${active ? 'text-primary' : 'text-muted hover:text-text/60'}`}
             >
-              {/* Gradient indicator pill at top edge */}
+              {/* Active indicator pill */}
               <span
                 className={`absolute top-0 left-1/2 -translate-x-1/2 h-0.5 rounded-full
                   transition-all duration-300 bg-grad-primary
                   ${active ? 'w-8 opacity-100' : 'w-0 opacity-0'}`}
               />
 
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={active ? 2.5 : 1.8}
-                viewBox="0 0 24 24"
-              >
-                {tab.icon}
-              </svg>
+              {isMe ? (
+                <MeAvatar user={user} photo={avatarPhoto} active={active} />
+              ) : (
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={active ? 2.5 : 1.8}
+                  viewBox="0 0 24 24"
+                >
+                  {tab.icon}
+                </svg>
+              )}
 
-              {/* Inline style ensures webkit-text-fill-color is always explicit */}
               <span
                 className="text-[10px] font-semibold tracking-wide"
                 style={active ? {

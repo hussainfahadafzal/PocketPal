@@ -8,6 +8,7 @@ from .config import settings
 from .database import Base, engine
 from .models import generate_invite_code
 from .routers import auth as auth_router
+from .routers import chat as chat_router
 from .routers import categories as categories_router
 from .routers import dashboard as dashboard_router
 from .routers import expenses as expenses_router
@@ -121,6 +122,7 @@ app.include_router(pocketscore_router.router)
 app.include_router(friends_router.router)
 app.include_router(groups_router.router)
 app.include_router(splits_router.router)
+app.include_router(chat_router.router)
 
 
 @app.get("/", tags=["health"])

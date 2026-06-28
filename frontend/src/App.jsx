@@ -19,6 +19,7 @@ import Profile from './pages/Profile';
 import EditProfile from './pages/EditProfile';
 import ChangePassword from './pages/ChangePassword';
 import Goals from './pages/Goals';
+import Chat from './pages/Chat';
 import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
 import Help from './pages/Help';
@@ -40,10 +41,11 @@ function ProtectedRoute({ children }) {
 }
 
 const NO_NAV = ['/login', '/register', '/onboarding', '/add', '/forgot-password', '/profile/edit', '/profile/change-password', '/goals', '/notifications', '/settings', '/help', '/about', '/jar'];
+function isNoNav(path) { return NO_NAV.includes(path) || path.startsWith('/chat/'); }
 
 export default function App() {
   const location = useLocation();
-  const showNav = !NO_NAV.includes(location.pathname);
+  const showNav = !isNoNav(location.pathname);
 
   return (
     <>
@@ -184,6 +186,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <About />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/chat/:friendId"
+        element={
+          <ProtectedRoute>
+            <Chat />
           </ProtectedRoute>
         }
       />

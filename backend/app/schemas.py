@@ -361,4 +361,22 @@ class ChangePasswordRequest(BaseModel):
     def passwords_match(self):
         if self.new_password != self.confirm_password:
             raise ValueError("New passwords do not match")
+
+
+# ── Chat ──────────────────────────────────────────────────────────────────────
+
+class DirectMessageCreate(BaseModel):
+    content: str = Field(min_length=1, max_length=1000)
+
+
+class DirectMessageResponse(BaseModel):
+    id: int
+    sender_id: int
+    receiver_id: int
+    sender_name: str = ""
+    content: str
+    created_at: UtcDatetime
+    is_mine: bool = False
+
+    model_config = {"from_attributes": True}
         return self

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
@@ -333,7 +334,7 @@ function BalanceRow({ balance, dir, onSettle, settling, delay }) {
 }
 
 // ── Friends view ──────────────────────────────────────────────────────────────
-function FriendsView({ friends, requests, currentUser, onRefresh }) {
+function FriendsView({ friends, requests, currentUser, onRefresh, navigate }) {
   const [mode,       setMode]       = useState('email');
   const [input,      setInput]      = useState('');
   const [adding,     setAdding]     = useState(false);
@@ -482,12 +483,18 @@ function FriendsView({ friends, requests, currentUser, onRefresh }) {
                 <p className="text-text font-semibold text-sm truncate">{f.name}</p>
                 <p className="text-muted text-xs truncate">{f.email}</p>
               </div>
-              {f.invite_code && (
-                <span className="font-mono text-[10px] font-bold px-2 py-1 rounded-lg shrink-0"
-                  style={{ background:'rgba(59,108,255,0.12)', color:'#3B6CFF' }}>
-                  {f.invite_code}
-                </span>
-              )}
+              <motion.button
+                whileTap={{ scale: 0.88 }}
+                onClick={() => navigate(`/chat/${f.id}`, { state: { friendName: f.name } })}
+                className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0 transition-all duration-150"
+                style={{ background: 'rgba(59,108,255,0.12)', color: '#3B6CFF' }}
+                title="Chat"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </motion.button>
             </motion.div>
           ))
         )}
@@ -787,6 +794,7 @@ function HistoryView({ splits, currentUser }) {
 // ── Main Split page ───────────────────────────────────────────────────────────
 export default function Split() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('balances');
   const [balances,  setBalances]  = useState([]);
   const [friends,   setFriends]   = useState([]);
@@ -864,7 +872,7 @@ export default function Split() {
               <BalancesView balances={balances} onSettle={handleSettle} settling={settling} />
             )}
             {activeTab === 'friends' && (
-              <FriendsView friends={friends} requests={requests} currentUser={user} onRefresh={loadAll} />
+              <FriendsView friends={friends} requests={requests} currentUser={user} onRefresh={loadAll} navigate={navigate} />
             )}
             {activeTab === 'new' && (
               <NewSplitView friends={friends} currentUser={user}
