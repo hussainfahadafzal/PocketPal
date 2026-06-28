@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, REMEMBER_ME_KEY, SAVED_EMAIL_KEY } from '../context/AuthContext';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import AuthLoadingState from '../components/AuthLoadingState';
@@ -18,8 +18,13 @@ const itemVariants = {
 
 export default function Login() {
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
+  // Pre-fill email if the user previously checked "Remember me".
+  const [email, setEmail] = useState(() => localStorage.getItem(SAVED_EMAIL_KEY) ?? '');
   const [password, setPassword] = useState('');
+  // Default to checked; respect the user's last explicit choice if they've logged in before.
+  const [rememberMe, setRememberMe] = useState(
+    () => localStorage.getItem(REMEMBER_ME_KEY) !== '0'
+  );
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -28,7 +33,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
+      await login(email, password, rememberMe);
     } catch (err) {
       setError(err.response?.data?.detail || 'Sign in failed. Check your credentials.');
     } finally {
@@ -124,7 +129,39 @@ export default function Login() {
               disabled={loading}
             />
 
-            <div className="flex justify-end -mt-1">
+            {/* Remember me + Forgot password row */}
+            <div className="flex items-center justify-between -mt-1">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <span className="relative flex h-4 w-4 shrink-0 items-center justify-center rounded transition-all duration-150"
+                  style={{
+                    background: rememberMe
+                      ? 'linear-gradient(135deg, #3B6CFF 0%, #8B5CF6 100%)'
+                      : 'transparent',
+                    border: rememberMe ? 'none' : '1.5px solid rgba(255,255,255,0.18)',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="sr-only"
+                    disabled={loading}
+                  />
+                  {rememberMe && (
+                    <svg width="9" height="7" viewBox="0 0 9 7" fill="none" aria-hidden>
+                      <path
+                        d="M1 3.5L3.2 5.5L8 1"
+                        stroke="white"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </span>
+                <span className="text-xs text-muted">Remember me</span>
+              </label>
+
               <Link
                 to="/forgot-password"
                 className="text-xs text-muted hover:text-primary transition-colors duration-150"
@@ -145,7 +182,11 @@ export default function Login() {
               </Button>
             )}
             <p className="text-[11px] text-center text-muted/80 min-h-4">
-              {loading ? 'Please wait while we verify your details.' : 'We’ll keep you signed in on this device.'}
+              {loading
+                ? 'Please wait while we verify your details.'
+                : rememberMe
+                  ? 'You'll stay signed in for 7 days on this device.'
+                  : 'You'll be signed out when the app is closed.'}
             </p>
           </form>
 
