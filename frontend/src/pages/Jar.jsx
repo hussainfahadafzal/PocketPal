@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import client from '../api/client';
-import TopBar from '../components/TopBar';
 import { useCountUp } from '../hooks/useCountUp';
 
 const SPRING = { duration: 0.5, ease: [0.22, 1, 0.36, 1] };
@@ -48,6 +48,7 @@ function Toggle({ enabled, onToggle, disabled }) {
 }
 
 export default function Jar() {
+  const navigate = useNavigate();
   const [jar, setJar]               = useState(null);
   const [roundupEnabled, setRoundup] = useState(false);
   const [toggling, setToggling]     = useState(false);
@@ -107,8 +108,21 @@ export default function Jar() {
   const pct     = hasGoal ? Math.min((jar.savings_jar / jar.jar_goal_amount) * 100, 100) : 0;
 
   return (
-    <div className="min-h-screen bg-bg pb-28 page-enter">
-      <TopBar showLogout />
+    <div className="min-h-screen bg-bg pb-28 page-enter" style={{ paddingTop: 'env(safe-area-inset-top,0px)' }}>
+      <div className="sticky top-0 z-40 border-b border-border/30"
+        style={{ background: 'rgba(7,9,26,0.90)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', paddingTop: 'env(safe-area-inset-top,0px)' }}
+      >
+        <div className="max-w-sm mx-auto px-4 h-14 flex items-center gap-3">
+          <button onClick={() => navigate('/profile')}
+            className="h-8 w-8 flex items-center justify-center rounded-xl text-muted hover:text-text transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <span className="font-heading font-semibold text-text text-base flex-1">Savings Jar</span>
+        </div>
+      </div>
 
       <motion.div
         className="max-w-sm mx-auto px-4 pt-5 flex flex-col gap-5"
@@ -116,14 +130,6 @@ export default function Jar() {
         initial="hidden"
         animate="show"
       >
-        {/* Heading */}
-        <motion.div variants={cardVariants}>
-          <p className="text-muted text-sm mb-0.5">Automatic saving</p>
-          <h1 className="font-display text-[1.7rem] font-bold text-text leading-tight">
-            Savings Jar
-          </h1>
-        </motion.div>
-
         {/* Jar total card */}
         <motion.div variants={cardVariants}>
           <div

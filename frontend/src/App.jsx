@@ -39,7 +39,7 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-const NO_NAV = ['/login', '/register', '/onboarding', '/add', '/forgot-password', '/profile/edit', '/profile/change-password', '/goals', '/notifications', '/settings', '/help', '/about'];
+const NO_NAV = ['/login', '/register', '/onboarding', '/add', '/forgot-password', '/profile/edit', '/profile/change-password', '/goals', '/notifications', '/settings', '/help', '/about', '/jar'];
 
 export default function App() {
   const location = useLocation();

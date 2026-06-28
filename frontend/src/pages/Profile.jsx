@@ -299,6 +299,7 @@ export default function Profile() {
         <Section title="Account">
           <MenuRow icon="✏️" grad="rgba(59,108,255,0.12)"  label="Edit Profile"     sub="Name, email, budget settings" onClick={() => navigate('/profile/edit')} />
           <MenuRow icon="🎯" grad="rgba(16,185,129,0.12)"  label="My Goals"         sub="Track personal savings goals"  onClick={() => navigate('/goals')} />
+          <MenuRow icon="🫙" grad="rgba(16,185,129,0.12)"  label="Savings Jar"      sub="Round-up savings & jar goal"   onClick={() => navigate('/jar')} />
           <MenuRow icon="🔒" grad="rgba(139,92,246,0.12)"  label="Change Password"                                     onClick={() => navigate('/profile/change-password')} />
         </Section>
 
