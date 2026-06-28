@@ -139,19 +139,21 @@ export default function Chat() {
   // ── Initial load ─────────────────────────────────────────────────────────
 
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       client.get(`/chat/${friendId}`),
       client.get(`/chat/${friendId}/read-status`),
-    ])
-      .then(([msgRes, rsRes]) => {
-        setMessages(msgRes.data);
-        if (msgRes.data.length > 0) lastIdRef.current = msgRes.data[msgRes.data.length - 1].id;
-        setLastReadId(rsRes.data.last_read_id);
-        // Mark all friend's messages as read immediately
+    ]).then(([msgResult, rsResult]) => {
+      if (msgResult.status === 'fulfilled') {
+        const data = msgResult.value.data;
+        setMessages(data);
+        if (data.length > 0) lastIdRef.current = data[data.length - 1].id;
+        // Mark friend's messages as read now that we've loaded them
         client.post(`/chat/${friendId}/read`).catch(() => {});
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      }
+      if (rsResult.status === 'fulfilled') {
+        setLastReadId(rsResult.value.data.last_read_id);
+      }
+    }).finally(() => setLoading(false));
   }, [friendId]);
 
   // ── Poll: messages + read-status every 3s, typing every 2s ──────────────
