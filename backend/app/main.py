@@ -37,75 +37,102 @@ app.add_middleware(
 )
 
 
+def _col_exists(conn, table: str, column: str, is_sqlite: bool) -> bool:
+    """Check whether a column exists in a table (works for SQLite + PostgreSQL)."""
+    if is_sqlite:
+        rows = conn.execute(text(f"PRAGMA table_info({table})")).fetchall()
+        return any(row[1] == column for row in rows)
+    else:
+        row = conn.execute(
+            text("SELECT 1 FROM information_schema.columns WHERE table_name=:t AND column_name=:c"),
+            {"t": table, "c": column},
+        ).first()
+        return row is not None
+
+
+def _table_exists(conn, table: str, is_sqlite: bool) -> bool:
+    if is_sqlite:
+        row = conn.execute(
+            text("SELECT 1 FROM sqlite_master WHERE type='table' AND name=:t"), {"t": table}
+        ).first()
+    else:
+        row = conn.execute(
+            text("SELECT 1 FROM information_schema.tables WHERE table_name=:t"), {"t": table}
+        ).first()
+    return row is not None
+
+
 def _migrate():
     """
-    Add new columns to existing SQLite tables without touching existing data.
-    Only runs on SQLite (local dev) — PRAGMA is SQLite-specific.
-    On PostgreSQL (Neon/Render), Base.metadata.create_all handles the schema.
+    Add new columns to existing tables without touching existing data.
+    Runs on both SQLite (local dev) and PostgreSQL (production).
     """
-    if not settings.DATABASE_URL.startswith("sqlite"):
-        return
+    is_sqlite = settings.DATABASE_URL.startswith("sqlite")
 
     with engine.connect() as conn:
-        # ── wallets ──────────────────────────────────────────────────────────
-        existing_wallet_cols = {
-            row[1] for row in conn.execute(text("PRAGMA table_info(wallets)"))
-        }
-        new_wallet_cols = [
-            ("roundup_enabled",  "BOOLEAN NOT NULL DEFAULT 0"),
-            ("savings_jar",      "FLOAT    NOT NULL DEFAULT 0.0"),
-            ("jar_goal_amount",  "FLOAT    NOT NULL DEFAULT 0.0"),
-            ("jar_goal_name",    "VARCHAR"),
-            ("cycle_start_date", "DATE"),
-            ("next_refill_date", "DATE"),
-            ("budget_mode",      "VARCHAR"),
-        ]
-        for col, definition in new_wallet_cols:
-            if col not in existing_wallet_cols:
-                conn.execute(text(f"ALTER TABLE wallets ADD COLUMN {col} {definition}"))
 
-        # ── expenses ─────────────────────────────────────────────────────────
-        existing_expense_cols = {
-            row[1] for row in conn.execute(text("PRAGMA table_info(expenses)"))
-        }
-        new_expense_cols = [
-            ("roundup_spare",    "FLOAT"),
-            ("roundup_doubled",  "BOOLEAN NOT NULL DEFAULT 0"),
-            ("split_share_id",   "INTEGER"),           # FK to split_shares, nullable
-        ]
-        for col, definition in new_expense_cols:
-            if col not in existing_expense_cols:
-                conn.execute(text(f"ALTER TABLE expenses ADD COLUMN {col} {definition}"))
+        if is_sqlite:
+            # ── wallets ──────────────────────────────────────────────────────
+            existing_wallet_cols = {
+                row[1] for row in conn.execute(text("PRAGMA table_info(wallets)"))
+            }
+            new_wallet_cols = [
+                ("roundup_enabled",  "BOOLEAN NOT NULL DEFAULT 0"),
+                ("savings_jar",      "FLOAT    NOT NULL DEFAULT 0.0"),
+                ("jar_goal_amount",  "FLOAT    NOT NULL DEFAULT 0.0"),
+                ("jar_goal_name",    "VARCHAR"),
+                ("cycle_start_date", "DATE"),
+                ("next_refill_date", "DATE"),
+                ("budget_mode",      "VARCHAR"),
+            ]
+            for col, definition in new_wallet_cols:
+                if col not in existing_wallet_cols:
+                    conn.execute(text(f"ALTER TABLE wallets ADD COLUMN {col} {definition}"))
 
-        # ── users: invite_code ────────────────────────────────────────────────
-        existing_user_cols = {
-            row[1] for row in conn.execute(text("PRAGMA table_info(users)"))
-        }
-        if "invite_code" not in existing_user_cols:
-            conn.execute(text("ALTER TABLE users ADD COLUMN invite_code VARCHAR"))
-            # Backfill existing users with unique invite codes
-            users = conn.execute(text("SELECT id FROM users")).fetchall()
-            used: set[str] = set()
-            for (uid,) in users:
-                code = generate_invite_code()
-                while code in used:
+            # ── expenses ─────────────────────────────────────────────────────
+            existing_expense_cols = {
+                row[1] for row in conn.execute(text("PRAGMA table_info(expenses)"))
+            }
+            new_expense_cols = [
+                ("roundup_spare",    "FLOAT"),
+                ("roundup_doubled",  "BOOLEAN NOT NULL DEFAULT 0"),
+                ("split_share_id",   "INTEGER"),
+            ]
+            for col, definition in new_expense_cols:
+                if col not in existing_expense_cols:
+                    conn.execute(text(f"ALTER TABLE expenses ADD COLUMN {col} {definition}"))
+
+            # ── users: invite_code ────────────────────────────────────────────
+            existing_user_cols = {
+                row[1] for row in conn.execute(text("PRAGMA table_info(users)"))
+            }
+            if "invite_code" not in existing_user_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN invite_code VARCHAR"))
+                users = conn.execute(text("SELECT id FROM users")).fetchall()
+                used: set[str] = set()
+                for (uid,) in users:
                     code = generate_invite_code()
-                used.add(code)
-                conn.execute(
-                    text("UPDATE users SET invite_code = :code WHERE id = :uid"),
-                    {"code": code, "uid": uid},
-                )
+                    while code in used:
+                        code = generate_invite_code()
+                    used.add(code)
+                    conn.execute(
+                        text("UPDATE users SET invite_code = :code WHERE id = :uid"),
+                        {"code": code, "uid": uid},
+                    )
 
-        # ── direct_messages: is_read + read_at ──────────────────────────────────
-        existing_dm_cols = {
-            row[1] for row in conn.execute(text("PRAGMA table_info(direct_messages)"))
-        }
-        for col, ddl in [
-            ("is_read", "BOOLEAN NOT NULL DEFAULT 0"),
-            ("read_at",  "DATETIME"),
-        ]:
-            if existing_dm_cols and col not in existing_dm_cols:
-                conn.execute(text(f"ALTER TABLE direct_messages ADD COLUMN {col} {ddl}"))
+        # ── direct_messages: is_read + read_at (SQLite + PostgreSQL) ─────────
+        # Must run for both DBs: create_all won't add columns to an existing table.
+        if _table_exists(conn, "direct_messages", is_sqlite):
+            for col, sqlite_ddl, pg_ddl in [
+                ("is_read", "BOOLEAN NOT NULL DEFAULT 0", "BOOLEAN NOT NULL DEFAULT FALSE"),
+                ("read_at",  "DATETIME",                   "TIMESTAMP"),
+            ]:
+                if not _col_exists(conn, "direct_messages", col, is_sqlite):
+                    ddl = sqlite_ddl if is_sqlite else pg_ddl
+                    try:
+                        conn.execute(text(f"ALTER TABLE direct_messages ADD COLUMN {col} {ddl}"))
+                    except Exception:
+                        pass  # already added in a concurrent startup or by create_all
 
         conn.commit()
 

@@ -48,8 +48,8 @@ def mark_read(
     db.query(DirectMessage).filter(
         DirectMessage.sender_id == friend_id,
         DirectMessage.receiver_id == current_user.id,
-        DirectMessage.is_read == False,  # noqa: E712
-    ).update({"is_read": True, "read_at": now})
+        DirectMessage.is_read.is_(False),
+    ).update({"is_read": True, "read_at": now}, synchronize_session=False)
     db.commit()
 
 
