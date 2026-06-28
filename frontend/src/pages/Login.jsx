@@ -185,8 +185,8 @@ export default function Login() {
               {loading
                 ? 'Please wait while we verify your details.'
                 : rememberMe
-                  ? 'You'll stay signed in for 7 days on this device.'
-                  : 'You'll be signed out when the app is closed.'}
+                  ? "You'll stay signed in for 7 days on this device."
+                  : "You'll be signed out when the app is closed."}
             </p>
           </form>
 
