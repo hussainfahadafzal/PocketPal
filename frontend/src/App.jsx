@@ -20,6 +20,8 @@ import EditProfile from './pages/EditProfile';
 import ChangePassword from './pages/ChangePassword';
 import Goals from './pages/Goals';
 import Chat from './pages/Chat';
+import Friends from './pages/Friends';
+import Messages from './pages/Messages';
 import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
 import Help from './pages/Help';
@@ -42,6 +44,7 @@ function ProtectedRoute({ children }) {
 
 const NO_NAV = ['/login', '/register', '/onboarding', '/add', '/forgot-password', '/profile/edit', '/profile/change-password', '/goals', '/notifications', '/settings', '/help', '/about', '/jar'];
 function isNoNav(path) { return NO_NAV.includes(path) || path.startsWith('/chat/'); }
+// /friends and /messages keep the bottom nav
 
 export default function App() {
   const location = useLocation();
@@ -194,6 +197,22 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Chat />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/friends"
+        element={
+          <ProtectedRoute>
+            <Friends />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/messages"
+        element={
+          <ProtectedRoute>
+            <Messages />
           </ProtectedRoute>
         }
       />

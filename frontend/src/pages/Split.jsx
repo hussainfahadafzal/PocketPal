@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import TopBar from '../components/TopBar';
 import Button from '../components/Button';
-import Spinner from '../components/Spinner';
 import Toast from '../components/Toast';
 import { useCountUp } from '../hooks/useCountUp';
 
@@ -45,21 +44,28 @@ function Avatar({ name, id, size = 'md' }) {
 // ── Sub-tab bar ───────────────────────────────────────────────────────────────
 const TABS = [
   { id: 'balances', label: 'Balances'  },
-  { id: 'friends',  label: 'Friends'   },
+  { id: 'groups',   label: 'Groups'    },
   { id: 'new',      label: 'New Split' },
   { id: 'history',  label: 'History'   },
 ];
 
-function SubTabBar({ active, onChange }) {
+function SubTabBar({ active, onChange, settleCount }) {
   return (
     <div className="flex gap-2 overflow-x-auto pb-0.5 no-scrollbar">
       {TABS.map((tab) => {
-        const on = active === tab.id;
+        const on    = active === tab.id;
+        const badge = tab.id === 'balances' ? settleCount : 0;
         return (
           <motion.button key={tab.id} onClick={() => onChange(tab.id)} whileTap={{ scale: 0.93 }}
-            className={`shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${on ? 'text-white' : 'text-muted hover:text-text/70'}`}
+            className={`shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-1.5 ${on ? 'text-white' : 'text-muted hover:text-text/70'}`}
             style={on ? { background: 'linear-gradient(135deg, #3B6CFF 0%, #8B5CF6 100%)', boxShadow: '0 2px 14px rgba(59,108,255,0.45)' } : { background: 'rgba(30,45,78,0.55)' }}>
             {tab.label}
+            {badge > 0 && (
+              <span className="h-4 w-4 rounded-full flex items-center justify-center text-[9px] font-black"
+                style={{ background: on ? 'rgba(255,255,255,0.3)' : 'linear-gradient(135deg,#F59E0B,#F97316)', color: 'white' }}>
+                {badge}
+              </span>
+            )}
           </motion.button>
         );
       })}
@@ -67,7 +73,7 @@ function SubTabBar({ active, onChange }) {
   );
 }
 
-// ── Celebration burst (plays once when all balances are cleared) ──────────────
+// ── Celebration burst ─────────────────────────────────────────────────────────
 const BURST_COLORS = ['#3B6CFF','#8B5CF6','#10B981','#F59E0B','#EF4444','#06B6D4','#EC4899','#F97316'];
 const BURST_COUNT  = 18;
 
@@ -108,16 +114,132 @@ function ConfettiBurst({ onDone }) {
   );
 }
 
-// ── Balances view ─────────────────────────────────────────────────────────────
-function BalancesView({ balances, onSettle, settling }) {
-  const gettingBack   = balances.filter((b) => b.they_owe > 0);
-  const iOwe          = balances.filter((b) => b.you_owe  > 0);
-  const totalBack     = gettingBack.reduce((s, b) => s + b.they_owe, 0);
-  const totalOwe      = iOwe.reduce((s, b) => s + b.you_owe, 0);
-  const net           = totalBack - totalOwe;
-  const [burst, setBurst] = useState(false);
+// ── Balance row (mutual settlement flow) ──────────────────────────────────────
+function BalanceRow({ balance, dir, pendingRequest, onSettleRequest, onCancelSettle, delay }) {
+  const [confirm,    setConfirm]    = useState(false);
+  const [requesting, setRequesting] = useState(false);
+  const [sent,       setSent]       = useState(false);
 
-  // Trigger burst when we transition from having balances → none
+  const green  = dir === 'back';
+  const amount = green ? balance.they_owe : balance.you_owe;
+  const anim   = useCountUp(amount, 900);
+
+  async function handleRequest() {
+    setRequesting(true);
+    try {
+      await onSettleRequest(balance.friend.id);
+      setSent(true);
+      setTimeout(() => setSent(false), 1200);
+    } catch {}
+    finally { setRequesting(false); setConfirm(false); }
+  }
+
+  async function handleCancel() {
+    await onCancelSettle(pendingRequest.id);
+  }
+
+  const isPending = !!pendingRequest;
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, x: green ? -16 : 16 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, scale: 0.88, y: -8, transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] } }}
+      transition={{ ...SPRING, delay }}
+      className="relative rounded-2xl overflow-hidden"
+      style={{
+        background: green ? 'rgba(16,185,129,0.07)' : 'rgba(239,68,68,0.07)',
+        border:     green ? '1px solid rgba(16,185,129,0.22)' : '1px solid rgba(239,68,68,0.22)',
+      }}
+    >
+      <div className="p-4 flex items-center gap-3">
+        <Avatar name={balance.friend.name} id={balance.friend.id} />
+        <div className="flex-1 min-w-0">
+          <p className="text-text font-semibold text-sm truncate">{balance.friend.name}</p>
+          <p className="text-muted text-xs truncate">{balance.friend.email}</p>
+        </div>
+        <div className="text-right shrink-0 flex flex-col items-end gap-1">
+          <p className="font-black text-[17px] leading-none" style={{ color: green ? '#10B981' : '#EF4444' }}>
+            ₹{anim.toLocaleString('en-IN')}
+          </p>
+          <AnimatePresence mode="wait">
+            {isPending ? (
+              <motion.div key="awaiting"
+                initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+                className="flex flex-col items-end gap-1">
+                <span className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg"
+                  style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B' }}>
+                  ⏳ Awaiting
+                </span>
+                <motion.button whileTap={{ scale: 0.92 }} onClick={handleCancel}
+                  className="text-[10px] font-semibold px-2.5 py-1.5 rounded-lg"
+                  style={{ background: 'rgba(239,68,68,0.1)', color: '#F87171' }}>
+                  Cancel
+                </motion.button>
+              </motion.div>
+            ) : sent ? (
+              <motion.div key="sent"
+                initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+                className="text-xs font-bold px-3 py-2 rounded-xl min-h-[36px] flex items-center gap-1"
+                style={{ background: 'rgba(16,185,129,0.18)', color: '#10B981' }}>
+                ✓ Requested
+              </motion.div>
+            ) : requesting ? (
+              <motion.div key="loading"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="text-xs font-bold px-3 py-2 rounded-xl min-h-[36px] flex items-center"
+                style={{ background: 'rgba(255,255,255,0.07)', color: '#7A8BAD' }}>
+                …
+              </motion.div>
+            ) : !confirm ? (
+              <motion.button key="settle-btn"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                whileTap={{ scale: 0.92 }}
+                onClick={() => setConfirm(true)}
+                className="text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all min-h-[44px]"
+                style={{ background: green ? 'rgba(16,185,129,0.18)' : 'rgba(239,68,68,0.18)', color: green ? '#10B981' : '#EF4444' }}>
+                Settle up
+              </motion.button>
+            ) : (
+              <motion.div key="confirm"
+                initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+                className="flex flex-col items-end gap-1.5">
+                <p className="text-[10px] text-muted/50 text-right leading-tight max-w-[100px]">
+                  Send a request — they confirm
+                </p>
+                <div className="flex gap-1.5">
+                  <motion.button whileTap={{ scale: 0.92 }} onClick={handleRequest} disabled={requesting}
+                    className="text-xs font-black px-3.5 py-2.5 rounded-xl min-h-[44px]"
+                    style={{ background: 'rgba(16,185,129,0.2)', color: '#10B981' }}>
+                    Request
+                  </motion.button>
+                  <motion.button whileTap={{ scale: 0.92 }} onClick={() => setConfirm(false)}
+                    className="text-xs font-bold px-3.5 py-2.5 rounded-xl min-h-[44px]"
+                    style={{ background: 'rgba(255,255,255,0.07)', color: '#7A8BAD' }}>
+                    No
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Balances view ─────────────────────────────────────────────────────────────
+function BalancesView({ balances, settleRequests, sentSettles, onSettleRequest, onCancelSettle, onApproveSettle, onRejectSettle }) {
+  const gettingBack = balances.filter((b) => b.they_owe > 0);
+  const iOwe        = balances.filter((b) => b.you_owe  > 0);
+  const totalBack   = gettingBack.reduce((s, b) => s + b.they_owe, 0);
+  const totalOwe    = iOwe.reduce((s, b) => s + b.you_owe, 0);
+  const net         = totalBack - totalOwe;
+  const [burst, setBurst] = useState(false);
+  const [approving, setApproving] = useState(null);
+  const [rejecting, setRejecting] = useState(null);
+
   const prevLenRef = useRef(balances.length);
   useEffect(() => {
     if (prevLenRef.current > 0 && balances.length === 0) setBurst(true);
@@ -128,7 +250,20 @@ function BalancesView({ balances, onSettle, settling }) {
   const animBack = useCountUp(totalBack);
   const animOwe  = useCountUp(totalOwe);
 
-  if (balances.length === 0) {
+  async function handleApprove(id) {
+    setApproving(id);
+    try { await onApproveSettle(id); } catch {} finally { setApproving(null); }
+  }
+  async function handleReject(id) {
+    setRejecting(id);
+    try { await onRejectSettle(id); } catch {} finally { setRejecting(null); }
+  }
+
+  // Build a map: friendId → sentSettle request (for awaiting state on balance rows)
+  const sentMap = {};
+  sentSettles.forEach((r) => { sentMap[r.target.id] = r; });
+
+  if (balances.length === 0 && settleRequests.length === 0) {
     return (
       <motion.div key="empty-balances"
         initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={SPRING}
@@ -151,48 +286,91 @@ function BalancesView({ balances, onSettle, settling }) {
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="show" className="flex flex-col gap-4">
 
+      {/* ── Incoming settle requests ── */}
+      {settleRequests.length > 0 && (
+        <motion.div variants={cardVariants} className="flex flex-col gap-2.5">
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-black uppercase tracking-[0.14em]" style={{ color: '#F59E0B' }}>
+              Settle Requests
+            </p>
+            <span className="h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-black text-white"
+              style={{ background: 'linear-gradient(135deg,#F59E0B,#F97316)' }}>
+              {settleRequests.length}
+            </span>
+          </div>
+          {settleRequests.map((req) => (
+            <motion.div key={req.id}
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              className="rounded-2xl p-3.5 flex items-center gap-3 min-h-[64px]"
+              style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.22)' }}>
+              <Avatar name={req.requester.name} id={req.requester.id} />
+              <div className="flex-1 min-w-0">
+                <p className="text-text font-semibold text-sm truncate">{req.requester.name}</p>
+                <p className="text-muted text-xs">wants to settle up with you</p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <motion.button whileTap={{ scale: 0.92 }} onClick={() => handleApprove(req.id)} disabled={approving === req.id}
+                  className="px-3.5 min-h-[44px] rounded-xl flex items-center gap-1.5 text-xs font-bold"
+                  style={{ background: 'rgba(16,185,129,0.2)', color: '#10B981' }}>
+                  {approving === req.id ? '…' : '✓ Confirm'}
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.92 }} onClick={() => handleReject(req.id)} disabled={rejecting === req.id}
+                  className="w-11 min-h-[44px] rounded-xl flex items-center justify-center text-sm"
+                  style={{ background: 'rgba(239,68,68,0.12)', color: '#EF4444' }}>
+                  {rejecting === req.id ? '…' : '✕'}
+                </motion.button>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+      )}
+
       {/* ── Simplified-balance label ── */}
-      <motion.div variants={cardVariants}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl self-start"
-        style={{ background: 'rgba(59,108,255,0.1)', border: '1px solid rgba(59,108,255,0.2)' }}>
-        <svg className="w-3 h-3 shrink-0" style={{ color: '#3B6CFF' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
-        <p className="text-[10px] font-bold" style={{ color: '#3B6CFF' }}>
-          Simplified · minimum payments shown
-        </p>
-      </motion.div>
+      {balances.length > 0 && (
+        <motion.div variants={cardVariants}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl self-start"
+          style={{ background: 'rgba(59,108,255,0.1)', border: '1px solid rgba(59,108,255,0.2)' }}>
+          <svg className="w-3 h-3 shrink-0" style={{ color: '#3B6CFF' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          <p className="text-[10px] font-bold" style={{ color: '#3B6CFF' }}>
+            Simplified · minimum payments shown
+          </p>
+        </motion.div>
+      )}
 
       {/* ── Hero net card ── */}
-      <motion.div variants={cardVariants} className="rounded-3xl p-6 relative overflow-hidden"
-        style={{
-          background: net >= 0
-            ? 'linear-gradient(140deg, #059669 0%, #10B981 55%, #06B6D4 100%)'
-            : 'linear-gradient(140deg, #DC2626 0%, #EF4444 55%, #F97316 100%)',
-          boxShadow: net >= 0
-            ? '0 24px 64px -12px rgba(16,185,129,0.55), 0 8px 28px -8px rgba(6,182,212,0.35)'
-            : '0 24px 64px -12px rgba(239,68,68,0.55), 0 8px 28px -8px rgba(249,115,22,0.35)',
-        }}>
-        <div className="absolute -top-12 -right-12 w-52 h-52 rounded-full opacity-25 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, white 0%, transparent 70%)', filter: 'blur(28px)' }} />
-        <p className="text-white/70 text-[11px] font-bold uppercase tracking-[0.18em] mb-1">
-          {net >= 0 ? "Overall you're owed" : 'Overall you owe'}
-        </p>
-        <p className="text-white font-black text-[42px] leading-none tracking-tight">
-          ₹{animNet.toLocaleString('en-IN')}
-        </p>
-        <div className="flex gap-5 mt-4 pt-4 border-t border-white/20">
-          <div>
-            <p className="text-white/55 text-[10px] font-semibold uppercase tracking-wider">Getting back</p>
-            <p className="text-white font-bold text-base mt-0.5">₹{animBack.toLocaleString('en-IN')}</p>
+      {balances.length > 0 && (
+        <motion.div variants={cardVariants} className="rounded-3xl p-6 relative overflow-hidden"
+          style={{
+            background: net >= 0
+              ? 'linear-gradient(140deg, #059669 0%, #10B981 55%, #06B6D4 100%)'
+              : 'linear-gradient(140deg, #DC2626 0%, #EF4444 55%, #F97316 100%)',
+            boxShadow: net >= 0
+              ? '0 24px 64px -12px rgba(16,185,129,0.55), 0 8px 28px -8px rgba(6,182,212,0.35)'
+              : '0 24px 64px -12px rgba(239,68,68,0.55), 0 8px 28px -8px rgba(249,115,22,0.35)',
+          }}>
+          <div className="absolute -top-12 -right-12 w-52 h-52 rounded-full opacity-25 pointer-events-none"
+            style={{ background: 'radial-gradient(circle, white 0%, transparent 70%)', filter: 'blur(28px)' }} />
+          <p className="text-white/70 text-[11px] font-bold uppercase tracking-[0.18em] mb-1">
+            {net >= 0 ? "Overall you're owed" : 'Overall you owe'}
+          </p>
+          <p className="text-white font-black text-[42px] leading-none tracking-tight">
+            ₹{animNet.toLocaleString('en-IN')}
+          </p>
+          <div className="flex gap-5 mt-4 pt-4 border-t border-white/20">
+            <div>
+              <p className="text-white/55 text-[10px] font-semibold uppercase tracking-wider">Getting back</p>
+              <p className="text-white font-bold text-base mt-0.5">₹{animBack.toLocaleString('en-IN')}</p>
+            </div>
+            <div className="w-px bg-white/20" />
+            <div>
+              <p className="text-white/55 text-[10px] font-semibold uppercase tracking-wider">You owe</p>
+              <p className="text-white font-bold text-base mt-0.5">₹{animOwe.toLocaleString('en-IN')}</p>
+            </div>
           </div>
-          <div className="w-px bg-white/20" />
-          <div>
-            <p className="text-white/55 text-[10px] font-semibold uppercase tracking-wider">You owe</p>
-            <p className="text-white font-bold text-base mt-0.5">₹{animOwe.toLocaleString('en-IN')}</p>
-          </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      )}
 
       {/* ── You'll get back ── */}
       {gettingBack.length > 0 && (
@@ -203,7 +381,10 @@ function BalancesView({ balances, onSettle, settling }) {
           <AnimatePresence mode="popLayout">
             {gettingBack.map((b, i) => (
               <BalanceRow key={b.friend.id} balance={b} dir="back"
-                onSettle={onSettle} settling={settling === b.friend.id} delay={i * 0.05} />
+                pendingRequest={sentMap[b.friend.id] || null}
+                onSettleRequest={onSettleRequest}
+                onCancelSettle={onCancelSettle}
+                delay={i * 0.05} />
             ))}
           </AnimatePresence>
         </motion.div>
@@ -218,7 +399,10 @@ function BalancesView({ balances, onSettle, settling }) {
           <AnimatePresence mode="popLayout">
             {iOwe.map((b, i) => (
               <BalanceRow key={b.friend.id} balance={b} dir="owe"
-                onSettle={onSettle} settling={settling === b.friend.id} delay={i * 0.05} />
+                pendingRequest={sentMap[b.friend.id] || null}
+                onSettleRequest={onSettleRequest}
+                onCancelSettle={onCancelSettle}
+                delay={i * 0.05} />
             ))}
           </AnimatePresence>
         </motion.div>
@@ -227,114 +411,7 @@ function BalancesView({ balances, onSettle, settling }) {
   );
 }
 
-// ── Balance row (handles its own confirm + settling animation) ────────────────
-function BalanceRow({ balance, dir, onSettle, settling, delay }) {
-  const [confirm,   setConfirm]  = useState(false);
-  const [done,      setDone]     = useState(false);  // plays green checkmark before exit
-  const green  = dir === 'back';
-  const amount = green ? balance.they_owe : balance.you_owe;
-  const anim   = useCountUp(amount, 900);
-
-  async function handleSettle() {
-    setDone(true);                  // show checkmark pulse
-    await new Promise((r) => setTimeout(r, 480));
-    onSettle(balance.friend.id);   // parent removes row + re-fetches
-  }
-
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, x: green ? -16 : 16 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{
-        opacity: 0,
-        scale: 0.88,
-        y: -8,
-        transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
-      }}
-      transition={{ ...SPRING, delay }}
-      className="relative rounded-2xl overflow-hidden"
-      style={{
-        background: green ? 'rgba(16,185,129,0.07)' : 'rgba(239,68,68,0.07)',
-        border:     green ? '1px solid rgba(16,185,129,0.22)' : '1px solid rgba(239,68,68,0.22)',
-      }}
-    >
-      {/* Settling overlay */}
-      <AnimatePresence>
-        {done && (
-          <motion.div
-            key="done-overlay"
-            className="absolute inset-0 flex items-center justify-center rounded-2xl z-10"
-            style={{ background: 'rgba(16,185,129,0.25)', backdropFilter: 'blur(4px)' }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: [0, 1.3, 1] }}
-              transition={{ duration: 0.4, times: [0, 0.6, 1] }}
-              className="text-3xl"
-            >
-              ✅
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="p-4 flex items-center gap-3">
-        <Avatar name={balance.friend.name} id={balance.friend.id} />
-        <div className="flex-1 min-w-0">
-          <p className="text-text font-semibold text-sm truncate">{balance.friend.name}</p>
-          <p className="text-muted text-xs truncate">{balance.friend.email}</p>
-        </div>
-        <div className="text-right shrink-0 flex flex-col items-end gap-1">
-          <p className="font-black text-[17px] leading-none" style={{ color: green ? '#10B981' : '#EF4444' }}>
-            ₹{anim.toLocaleString('en-IN')}
-          </p>
-          <AnimatePresence mode="wait">
-            {done || settling ? (
-              <motion.div key="loading"
-                initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-                className="text-xs font-bold px-3 py-2 rounded-xl min-h-[36px] flex items-center"
-                style={{ background: 'rgba(16,185,129,0.18)', color: '#10B981' }}>
-                …
-              </motion.div>
-            ) : !confirm ? (
-              <motion.button key="settle-btn"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                whileTap={{ scale: 0.92 }}
-                onClick={() => setConfirm(true)}
-                className="text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all min-h-[44px]"
-                style={{ background: green ? 'rgba(16,185,129,0.18)' : 'rgba(239,68,68,0.18)', color: green ? '#10B981' : '#EF4444' }}>
-                Settle up
-              </motion.button>
-            ) : (
-              <motion.div key="confirm"
-                initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-                className="flex gap-1.5">
-                <motion.button whileTap={{ scale: 0.92 }}
-                  onClick={handleSettle}
-                  className="text-xs font-black px-3.5 py-2.5 rounded-xl min-h-[44px]"
-                  style={{ background: 'rgba(16,185,129,0.2)', color: '#10B981' }}>
-                  Yes
-                </motion.button>
-                <motion.button whileTap={{ scale: 0.92 }}
-                  onClick={() => setConfirm(false)}
-                  className="text-xs font-bold px-3.5 py-2.5 rounded-xl min-h-[44px]"
-                  style={{ background: 'rgba(255,255,255,0.07)', color: '#7A8BAD' }}>
-                  No
-                </motion.button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-// ── Friends view ──────────────────────────────────────────────────────────────
+// ── Friends view (kept for Split internal use — standalone page is /friends) ──
 function FriendsView({ friends, requests, sentRequests, currentUser, onRefresh, navigate, onToast }) {
   const [mode,       setMode]       = useState('email');
   const [input,      setInput]      = useState('');
@@ -498,7 +575,7 @@ function FriendsView({ friends, requests, sentRequests, currentUser, onRefresh, 
                   Pending
                 </span>
                 <motion.button whileTap={{ scale:0.92 }}
-                  onClick={() => cancelRequest(req)}
+                  onClick={() => { setCancelling(req.id); client.post(`/friends/cancel/${req.id}`).then(() => onRefresh()).finally(() => setCancelling(null)); }}
                   disabled={cancelling === req.id}
                   className="text-xs font-semibold px-3 py-2 min-h-[36px] rounded-lg transition-all"
                   style={{ background:'rgba(239,68,68,0.1)', color:'#F87171' }}>
@@ -541,10 +618,8 @@ function FriendsView({ friends, requests, sentRequests, currentUser, onRefresh, 
                 whileTap={{ scale: 0.9 }}
                 onClick={() => navigate(`/chat/${f.id}`, { state: { friendName: f.name } })}
                 className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: 'rgba(59,108,255,0.15)', color: '#3B6CFF' }}
-                title="Chat"
-              >
-                <svg className="w-4.5 h-4.5 w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                style={{ background: 'rgba(59,108,255,0.15)', color: '#3B6CFF' }}>
+                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
@@ -553,6 +628,402 @@ function FriendsView({ friends, requests, sentRequests, currentUser, onRefresh, 
           ))
         )}
       </motion.div>
+    </motion.div>
+  );
+}
+
+// ── Group expense form ────────────────────────────────────────────────────────
+function GroupExpenseForm({ group, currentUser, onSuccess, onToast }) {
+  const members  = group.members.map((m) => m.user);
+  const [desc,   setDesc]   = useState('');
+  const [amount, setAmount] = useState('');
+  const [paidBy, setPaidBy] = useState(currentUser?.id);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError]   = useState('');
+
+  async function submit() {
+    if (!desc.trim())              { setError('Add a description'); return; }
+    if (!parseFloat(amount) > 0)   { setError('Enter an amount'); return; }
+    setError(''); setSubmitting(true);
+    try {
+      await client.post('/splits', {
+        description: desc.trim(),
+        total_amount: parseFloat(amount),
+        paid_by: paidBy,
+        group_id: group.id,
+        equal_split: true,
+        participants: members.map((m) => m.id),
+      });
+      onToast?.(`₹${amount} split equally among ${members.length} members ✓`, '');
+      onSuccess();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Could not add expense');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <motion.div initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} transition={SPRING}
+      className="rounded-2xl p-4 flex flex-col gap-3"
+      style={{ background:'rgba(13,18,37,0.85)', border:'1px solid rgba(30,45,78,0.6)' }}>
+      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-muted">New group expense</p>
+      <input type="text" placeholder="What's it for?" value={desc} onChange={(e) => setDesc(e.target.value)}
+        className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 text-text text-sm outline-none focus:border-primary transition-all placeholder:text-muted/40 min-h-[44px]" />
+      <div className="relative">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted text-sm pointer-events-none">₹</span>
+        <input type="number" inputMode="decimal" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)}
+          className="w-full bg-surface-2 border border-border rounded-xl pl-8 pr-4 py-3 text-text text-sm outline-none focus:border-primary transition-all placeholder:text-muted/40 min-h-[44px]" />
+      </div>
+      <div>
+        <p className="text-[10px] text-muted/60 mb-2">Who paid?</p>
+        <div className="flex flex-wrap gap-2">
+          {members.map((m) => (
+            <motion.button key={m.id} whileTap={{ scale:0.93 }} onClick={() => setPaidBy(m.id)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+              style={paidBy === m.id
+                ? { background:'linear-gradient(135deg,#3B6CFF,#8B5CF6)', color:'white' }
+                : { background:'rgba(30,45,78,0.55)', color:'#7A8BAD' }}>
+              <Avatar name={m.name} id={m.id} size="sm" />
+              {m.id === currentUser?.id ? 'You' : m.name.split(' ')[0]}
+            </motion.button>
+          ))}
+        </div>
+      </div>
+      <p className="text-[10px] text-muted/50">Split equally among all {members.length} members</p>
+      {error && <p className="text-danger text-xs">{error}</p>}
+      <div className="flex gap-2">
+        <Button onClick={submit} loading={submitting} className="flex-1">Add expense</Button>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Group detail view ─────────────────────────────────────────────────────────
+function GroupDetailView({ group, currentUser, onBack, onToast }) {
+  const [balances,    setBalances]    = useState([]);
+  const [splits,      setSplits]      = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [showExpense, setShowExpense] = useState(false);
+
+  const fetchGroup = useCallback(async () => {
+    try {
+      const [bRes, sRes] = await Promise.all([
+        client.get(`/groups/${group.id}/balances`),
+        client.get(`/splits?group_id=${group.id}`),
+      ]);
+      setBalances(bRes.data);
+      setSplits(sRes.data);
+    } catch {}
+    finally { setLoading(false); }
+  }, [group.id]);
+
+  useEffect(() => { fetchGroup(); }, [fetchGroup]);
+
+  const members = group.members.map((m) => m.user);
+
+  return (
+    <motion.div variants={containerVariants} initial="hidden" animate="show" className="flex flex-col gap-4">
+
+      {/* Back */}
+      <motion.div variants={cardVariants} className="flex items-center gap-3">
+        <motion.button whileTap={{ scale:0.92 }} onClick={onBack}
+          className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background:'rgba(30,45,78,0.55)', color:'#7A8BAD' }}>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </motion.button>
+        <h2 className="font-heading text-xl font-bold text-text">{group.name}</h2>
+      </motion.div>
+
+      {/* Members */}
+      <motion.div variants={cardVariants} className="rounded-2xl p-4"
+        style={{ background:'rgba(13,18,37,0.85)', border:'1px solid rgba(30,45,78,0.6)' }}>
+        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-muted mb-3">
+          Members · {members.length}
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {members.map((m) => (
+            <div key={m.id} className="flex flex-col items-center gap-1">
+              <Avatar name={m.name} id={m.id} size="md" />
+              <p className="text-[10px] text-muted/70 font-medium">
+                {m.id === currentUser?.id ? 'You' : m.name.split(' ')[0]}
+              </p>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Group balances */}
+      <motion.div variants={cardVariants} className="flex flex-col gap-2">
+        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-muted/60">Balances</p>
+        {loading ? (
+          <div className="h-16 rounded-2xl bg-white/5 animate-pulse" />
+        ) : balances.length === 0 ? (
+          <div className="rounded-2xl p-4 flex items-center gap-3"
+            style={{ background:'rgba(16,185,129,0.07)', border:'1px solid rgba(16,185,129,0.18)' }}>
+            <span className="text-2xl">✅</span>
+            <p className="text-sm font-semibold" style={{ color:'#10B981' }}>All settled up within the group!</p>
+          </div>
+        ) : (
+          balances.map((b, i) => {
+            const isMyDebt   = b.debtor.id   === currentUser?.id;
+            const isMyCredit = b.creditor.id === currentUser?.id;
+            const highlight  = isMyDebt || isMyCredit;
+            return (
+              <motion.div key={i}
+                initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay: i * 0.05 }}
+                className="rounded-2xl px-4 py-3 flex items-center gap-3"
+                style={{
+                  background: isMyDebt ? 'rgba(239,68,68,0.07)' : isMyCredit ? 'rgba(16,185,129,0.07)' : 'rgba(13,18,37,0.85)',
+                  border: isMyDebt ? '1px solid rgba(239,68,68,0.18)' : isMyCredit ? '1px solid rgba(16,185,129,0.18)' : '1px solid rgba(30,45,78,0.5)',
+                }}>
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <span className="text-sm font-semibold text-text truncate">
+                    {b.debtor.id === currentUser?.id ? 'You' : b.debtor.name.split(' ')[0]}
+                  </span>
+                  <svg className="w-3.5 h-3.5 text-muted/40 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  <span className="text-sm font-semibold text-text truncate">
+                    {b.creditor.id === currentUser?.id ? 'You' : b.creditor.name.split(' ')[0]}
+                  </span>
+                </div>
+                <span className="font-black text-sm shrink-0"
+                  style={{ color: isMyDebt ? '#EF4444' : isMyCredit ? '#10B981' : '#E8EAF0' }}>
+                  ₹{inr(b.amount)}
+                </span>
+              </motion.div>
+            );
+          })
+        )}
+      </motion.div>
+
+      {/* Add expense */}
+      <motion.div variants={cardVariants}>
+        <motion.button whileTap={{ scale:0.97 }} onClick={() => setShowExpense((v) => !v)}
+          className="w-full py-3.5 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2"
+          style={{ background:'linear-gradient(135deg,#3B6CFF,#8B5CF6)', boxShadow:'0 4px 16px rgba(59,108,255,0.35)' }}>
+          {showExpense ? '✕ Cancel' : '+ Add group expense'}
+        </motion.button>
+        <AnimatePresence>
+          {showExpense && (
+            <motion.div key="expense-form" initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:'auto' }} exit={{ opacity:0, height:0 }}
+              className="overflow-hidden mt-3">
+              <GroupExpenseForm
+                group={group}
+                currentUser={currentUser}
+                onToast={onToast}
+                onSuccess={() => { setShowExpense(false); fetchGroup(); }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+
+      {/* Expense history */}
+      <motion.div variants={cardVariants} className="flex flex-col gap-2">
+        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-muted/60">
+          Expenses · {splits.length}
+        </p>
+        {loading ? (
+          <>
+            <div className="h-16 rounded-2xl bg-white/5 animate-pulse" />
+            <div className="h-16 rounded-2xl bg-white/5 animate-pulse" />
+          </>
+        ) : splits.length === 0 ? (
+          <div className="rounded-2xl p-6 flex flex-col items-center gap-2 text-center"
+            style={{ background:'rgba(13,18,37,0.6)', border:'1px dashed rgba(30,45,78,0.5)' }}>
+            <span className="text-3xl">🧾</span>
+            <p className="text-text font-semibold text-sm">No expenses yet</p>
+            <p className="text-muted text-xs">Add the first one above</p>
+          </div>
+        ) : splits.map((split) => {
+          const iPaid = split.paid_by_user_id === currentUser?.id;
+          const date  = new Date(split.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short' });
+          return (
+            <div key={split.id} className="rounded-2xl p-4"
+              style={{ background:'rgba(13,18,37,0.8)', border:'1px solid rgba(30,45,78,0.55)' }}>
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1 min-w-0 pr-3">
+                  <p className="text-text font-bold text-sm truncate">{split.description}</p>
+                  <p className="text-muted text-xs mt-0.5">
+                    {iPaid ? 'You paid' : `${split.paid_by.name.split(' ')[0]} paid`} · {date}
+                  </p>
+                </div>
+                <p className="text-text font-black text-base shrink-0">₹{inr(split.total_amount)}</p>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {split.shares.map((sh) => (
+                  <div key={sh.id}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold"
+                    style={sh.settled
+                      ? { background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.2)', color:'#10B981' }
+                      : { background:'rgba(30,45,78,0.6)', color:'#7A8BAD' }}>
+                    {sh.user_id === currentUser?.id ? 'You' : sh.user.name.split(' ')[0]}
+                    <span className="opacity-60">₹{inr(sh.share_amount)}</span>
+                    {sh.settled && <span className="text-[9px]">✓</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ── Groups view ───────────────────────────────────────────────────────────────
+function GroupsView({ groups, friends, currentUser, onRefresh, onToast }) {
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [showCreate,    setShowCreate]    = useState(false);
+  const [createName,    setCreateName]    = useState('');
+  const [createMembers, setCreateMembers] = useState([]);
+  const [creating,      setCreating]      = useState(false);
+  const [createError,   setCreateError]   = useState('');
+
+  if (selectedGroup) {
+    return (
+      <GroupDetailView
+        group={selectedGroup}
+        currentUser={currentUser}
+        onBack={() => { setSelectedGroup(null); onRefresh(); }}
+        onToast={onToast}
+      />
+    );
+  }
+
+  function toggleMember(id) {
+    setCreateMembers((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  }
+
+  async function handleCreate() {
+    if (!createName.trim()) { setCreateError('Give your group a name'); return; }
+    setCreating(true); setCreateError('');
+    try {
+      await client.post('/groups', {
+        name: createName.trim(),
+        member_user_ids: createMembers,
+      });
+      onToast?.(`${createName} created! 🎉`, '');
+      setCreateName(''); setCreateMembers([]); setShowCreate(false);
+      onRefresh();
+    } catch (err) {
+      setCreateError(err.response?.data?.detail || 'Could not create group');
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  return (
+    <motion.div variants={containerVariants} initial="hidden" animate="show" className="flex flex-col gap-4">
+
+      {/* Create group */}
+      <motion.div variants={cardVariants}>
+        <motion.button whileTap={{ scale:0.97 }} onClick={() => setShowCreate((v) => !v)}
+          className="w-full py-3.5 rounded-2xl text-sm font-bold flex items-center justify-center gap-2"
+          style={{
+            background: showCreate ? 'rgba(255,255,255,0.05)' : 'rgba(59,108,255,0.12)',
+            border: `1px solid ${showCreate ? 'rgba(255,255,255,0.1)' : 'rgba(59,108,255,0.25)'}`,
+            color: showCreate ? '#7A8BAD' : '#3B6CFF',
+          }}>
+          {showCreate ? '✕ Cancel' : '+ Create a group'}
+        </motion.button>
+
+        <AnimatePresence>
+          {showCreate && (
+            <motion.div key="create-form"
+              initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:'auto' }} exit={{ opacity:0, height:0 }}
+              className="overflow-hidden mt-3">
+              <div className="rounded-2xl p-4 flex flex-col gap-3"
+                style={{ background:'rgba(13,18,37,0.85)', border:'1px solid rgba(30,45,78,0.6)' }}>
+                <input type="text" placeholder="Group name (Flat 404, Goa Trip…)"
+                  value={createName} onChange={(e) => setCreateName(e.target.value)}
+                  className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 text-text text-sm outline-none focus:border-primary transition-all placeholder:text-muted/40 min-h-[44px]" />
+                {friends.length > 0 && (
+                  <div>
+                    <p className="text-[10px] text-muted/60 mb-2">Add friends to the group</p>
+                    <div className="flex flex-wrap gap-2">
+                      {friends.map((f) => {
+                        const on = createMembers.includes(f.id);
+                        return (
+                          <motion.button key={f.id} whileTap={{ scale:0.93 }} onClick={() => toggleMember(f.id)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                            style={on
+                              ? { background:'rgba(16,185,129,0.15)', border:'1px solid rgba(16,185,129,0.3)', color:'#10B981' }
+                              : { background:'rgba(30,45,78,0.55)', color:'#7A8BAD', border:'1px solid transparent' }}>
+                            <Avatar name={f.name} id={f.id} size="sm" />
+                            {f.name.split(' ')[0]}
+                            {on && <span className="text-[10px]">✓</span>}
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {friends.length === 0 && (
+                  <p className="text-muted/50 text-xs">Add friends first — they can be added to the group</p>
+                )}
+                {createError && <p className="text-danger text-xs">{createError}</p>}
+                <Button onClick={handleCreate} loading={creating}>Create group</Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+
+      {/* Groups list */}
+      {groups.length === 0 ? (
+        <motion.div variants={cardVariants}
+          className="rounded-2xl p-8 flex flex-col items-center gap-3 text-center"
+          style={{ background:'rgba(13,18,37,0.6)', border:'1px dashed rgba(59,108,255,0.2)' }}>
+          <span className="text-4xl">🏠</span>
+          <div>
+            <p className="text-text font-semibold text-sm">No groups yet</p>
+            <p className="text-muted text-xs mt-1 leading-relaxed max-w-[200px] mx-auto">
+              Create one for your flat, upcoming trip, or any shared crew
+            </p>
+          </div>
+        </motion.div>
+      ) : (
+        <>
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-muted/60">
+            Your groups · {groups.length}
+          </p>
+          {groups.map((g) => {
+            const memberNames = g.members.slice(0, 3).map((m) =>
+              m.user.id === currentUser?.id ? 'You' : m.user.name.split(' ')[0]
+            ).join(', ');
+            const extra = g.members.length > 3 ? ` +${g.members.length - 3}` : '';
+            return (
+              <motion.div key={g.id} variants={cardVariants}
+                className="rounded-2xl p-4 cursor-pointer"
+                style={{ background:'rgba(13,18,37,0.85)', border:'1px solid rgba(30,45,78,0.6)' }}
+                onClick={() => setSelectedGroup(g)}
+                whileTap={{ scale:0.98 }}>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-text font-bold text-base">{g.name}</p>
+                  <svg className="w-4 h-4 text-muted/30 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex -space-x-2">
+                    {g.members.slice(0, 4).map((m) => (
+                      <div key={m.user_id} className="ring-2 rounded-full" style={{ '--tw-ring-color': 'rgba(13,18,37,0.9)' }}>
+                        <Avatar name={m.user.name} id={m.user_id} size="sm" />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-muted/50 text-xs">{memberNames}{extra}</p>
+                </div>
+              </motion.div>
+            );
+          })}
+        </>
+      )}
     </motion.div>
   );
 }
@@ -614,7 +1085,6 @@ function NewSplitView({ friends, currentUser, onCreated }) {
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="show" className="flex flex-col gap-4">
 
-      {/* Amount + description */}
       <motion.div variants={cardVariants} className="rounded-3xl p-5"
         style={{ background:'rgba(13,18,37,0.85)', border:'1px solid rgba(30,45,78,0.6)' }}>
         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted text-center mb-3">Total bill</p>
@@ -630,7 +1100,6 @@ function NewSplitView({ friends, currentUser, onCreated }) {
           className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 text-text text-base outline-none focus:border-primary transition-all placeholder:text-muted/40" />
       </motion.div>
 
-      {/* Who paid? */}
       <motion.div variants={cardVariants} className="rounded-3xl p-5"
         style={{ background:'rgba(13,18,37,0.85)', border:'1px solid rgba(30,45,78,0.6)' }}>
         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted mb-3">Who paid?</p>
@@ -650,7 +1119,6 @@ function NewSplitView({ friends, currentUser, onCreated }) {
         </div>
       </motion.div>
 
-      {/* Split with */}
       <motion.div variants={cardVariants} className="rounded-3xl p-5"
         style={{ background:'rgba(13,18,37,0.85)', border:'1px solid rgba(30,45,78,0.6)' }}>
         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted mb-3">Split with</p>
@@ -685,7 +1153,6 @@ function NewSplitView({ friends, currentUser, onCreated }) {
         )}
       </motion.div>
 
-      {/* Shares breakdown */}
       <AnimatePresence>
         {participants.length >= 2 && totalNum > 0 && (
           <motion.div key="shares" initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:8 }} transition={SPRING}
@@ -700,7 +1167,6 @@ function NewSplitView({ friends, currentUser, onCreated }) {
                 </button>
               ))}
             </div>
-
             {splitMode === 'equal' ? (
               <div className="flex flex-col gap-2.5">
                 {participants.map((uid) => {
@@ -849,31 +1315,33 @@ function HistoryView({ splits, currentUser }) {
 // ── Main Split page ───────────────────────────────────────────────────────────
 export default function Split() {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [activeTab,    setActiveTab]    = useState('balances');
-  const [balances,     setBalances]     = useState([]);
-  const [friends,      setFriends]      = useState([]);
-  const [requests,     setRequests]     = useState([]);
-  const [sentRequests, setSentRequests] = useState([]);
-  const [splits,       setSplits]       = useState([]);
-  const [loading,      setLoading]      = useState(true);
-  const [settling,     setSettling]     = useState(null);
-  const [toast,        setToast]        = useState(null); // { message, icon }
+  const navigate = useNavigate(); // used by GroupsView → GroupDetailView navigate(chat)
+  const [activeTab,   setActiveTab]   = useState('balances');
+  const [balances,    setBalances]    = useState([]);
+  const [friends,     setFriends]     = useState([]);
+  const [groups,      setGroups]      = useState([]);
+  const [splits,      setSplits]      = useState([]);
+  const [settleReqs,  setSettleReqs]  = useState([]);
+  const [sentSettles, setSentSettles] = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [toast,       setToast]       = useState(null);
 
   const loadAll = useCallback(async () => {
     try {
-      const [bRes, fRes, rRes, srRes, sRes] = await Promise.all([
+      const [bRes, fRes, gRes, sRes, siRes, ssRes] = await Promise.all([
         client.get('/splits/balances'),
         client.get('/friends'),
-        client.get('/friends/requests'),
-        client.get('/friends/requests/sent'),
+        client.get('/groups'),
         client.get('/splits'),
+        client.get('/splits/settle/incoming'),
+        client.get('/splits/settle/sent'),
       ]);
       setBalances(bRes.data);
       setFriends(fRes.data);
-      setRequests(rRes.data);
-      setSentRequests(srRes.data);
+      setGroups(gRes.data);
       setSplits(sRes.data);
+      setSettleReqs(siRes.data);
+      setSentSettles(ssRes.data);
     } catch {
       // individual views show their own empty states
     } finally {
@@ -883,39 +1351,49 @@ export default function Split() {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  // Poll friend requests every 12 s when the Friends tab is open
+  // Poll settle requests when Balances tab is open
   useEffect(() => {
-    if (activeTab !== 'friends') return;
+    if (activeTab !== 'balances') return;
     const id = setInterval(() => {
       Promise.all([
-        client.get('/friends/requests'),
-        client.get('/friends/requests/sent'),
-        client.get('/friends'),
-      ]).then(([rRes, srRes, fRes]) => {
-        setRequests(rRes.data);
-        setSentRequests(srRes.data);
-        setFriends(fRes.data);
+        client.get('/splits/balances'),
+        client.get('/splits/settle/incoming'),
+        client.get('/splits/settle/sent'),
+      ]).then(([bRes, siRes, ssRes]) => {
+        setBalances(bRes.data);
+        setSettleReqs(siRes.data);
+        setSentSettles(ssRes.data);
       }).catch(() => {});
     }, 12000);
     return () => clearInterval(id);
   }, [activeTab]);
 
-  // Refetch everything when the browser tab regains focus
+  // Refetch when tab regains focus
   useEffect(() => {
     const onVisible = () => { if (document.visibilityState === 'visible') loadAll(); };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [loadAll]);
 
-  async function handleSettle(friendId) {
-    setSettling(friendId);
-    try {
-      await client.post('/splits/settle', { friend_user_id: friendId });
-      await loadAll();
-    } catch {
-    } finally {
-      setSettling(null);
-    }
+  // ── Settlement handlers ───────────────────────────────────────────────────
+  async function handleSettleRequest(friendId) {
+    await client.post('/splits/settle/request', { friend_user_id: friendId });
+    await loadAll();
+  }
+
+  async function handleCancelSettle(requestId) {
+    await client.delete(`/splits/settle/cancel/${requestId}`);
+    await loadAll();
+  }
+
+  async function handleApproveSettle(requestId) {
+    await client.post(`/splits/settle/approve/${requestId}`);
+    await loadAll();
+  }
+
+  async function handleRejectSettle(requestId) {
+    await client.post(`/splits/settle/reject/${requestId}`);
+    await loadAll();
   }
 
   if (!user || loading) {
@@ -923,11 +1401,9 @@ export default function Split() {
       <div className="min-h-screen bg-bg pb-28">
         <TopBar showLogout />
         <div className="max-w-sm mx-auto px-4 pt-5 flex flex-col gap-5">
-          <div className="flex items-center justify-between">
-            <div className="h-8 w-14 rounded-xl bg-white/5 animate-pulse" />
-          </div>
+          <div className="h-8 w-14 rounded-xl bg-white/5 animate-pulse" />
           <div className="flex gap-2">
-            {[80, 64, 88, 68].map((w, i) => (
+            {[80, 64, 72, 88, 68].map((w, i) => (
               <div key={i} style={{ width: w }} className="h-9 rounded-xl bg-white/5 animate-pulse" />
             ))}
           </div>
@@ -953,37 +1429,35 @@ export default function Split() {
       <TopBar showLogout />
 
       <div className="max-w-sm mx-auto px-4 pt-5 flex flex-col gap-5">
-        <div className="flex items-center justify-between">
-          <h1 className="font-heading text-2xl font-semibold text-text">Split</h1>
-          {requests.length > 0 && (
-            <motion.button whileTap={{ scale:0.93 }} onClick={() => setActiveTab('friends')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white"
-              style={{ background:'linear-gradient(135deg, #F97316 0%, #EF4444 100%)', boxShadow:'0 2px 12px rgba(249,115,22,0.4)' }}>
-              <span className="w-4 h-4 flex items-center justify-center rounded-full bg-white/25 text-[10px] font-black">
-                {requests.length}
-              </span>
-              {requests.length === 1 ? 'request' : 'requests'}
-            </motion.button>
-          )}
-        </div>
+        <h1 className="font-heading text-2xl font-semibold text-text">Split</h1>
 
-        <SubTabBar active={activeTab} onChange={setActiveTab} />
+        <SubTabBar
+          active={activeTab}
+          onChange={setActiveTab}
+          settleCount={settleReqs.length}
+        />
 
         <AnimatePresence mode="wait">
           <motion.div key={activeTab}
             initial={{ opacity:0, y:14 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-6 }}
             transition={{ duration: 0.18 }}>
             {activeTab === 'balances' && (
-              <BalancesView balances={balances} onSettle={handleSettle} settling={settling} />
+              <BalancesView
+                balances={balances}
+                settleRequests={settleReqs}
+                sentSettles={sentSettles}
+                onSettleRequest={handleSettleRequest}
+                onCancelSettle={handleCancelSettle}
+                onApproveSettle={handleApproveSettle}
+                onRejectSettle={handleRejectSettle}
+              />
             )}
-            {activeTab === 'friends' && (
-              <FriendsView
+            {activeTab === 'groups' && (
+              <GroupsView
+                groups={groups}
                 friends={friends}
-                requests={requests}
-                sentRequests={sentRequests}
                 currentUser={user}
                 onRefresh={loadAll}
-                navigate={navigate}
                 onToast={(message, icon) => setToast({ message, icon })}
               />
             )}

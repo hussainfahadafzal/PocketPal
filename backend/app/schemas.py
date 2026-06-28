@@ -298,6 +298,22 @@ class SettleRequest(BaseModel):
     friend_user_id: int
 
 
+class SettlementRequestResponse(BaseModel):
+    id: int
+    requester: UserMini
+    target: UserMini
+    status: str
+    created_at: UtcDatetime
+
+    model_config = {"from_attributes": True}
+
+
+class GroupBalanceEntry(BaseModel):
+    debtor: UserMini
+    creditor: UserMini
+    amount: float
+
+
 # ── Password reset ────────────────────────────────────────────────────────────
 
 class ForgotPasswordRequest(BaseModel):

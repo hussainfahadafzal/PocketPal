@@ -1,15 +1,15 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import and_, func, or_
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_user
 from ..database import get_db
-from ..models import Expense, Group, GroupMember, SplitExpense, SplitShare, User
-from ..schemas import BalanceEntry, SettleRequest, SplitCreate, SplitResponse, UserMini
+from ..models import Expense, Group, GroupMember, SettlementRequest, SplitExpense, SplitShare, User
+from ..schemas import BalanceEntry, SettleRequest, SettlementRequestResponse, SplitCreate, SplitResponse, UserMini
 
 router = APIRouter(prefix="/splits", tags=["splits"])
 
@@ -241,9 +241,22 @@ def create_split(
 
 @router.get("", response_model=List[SplitResponse])
 def list_splits(
+    group_id: Optional[int] = Query(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if group_id is not None:
+        if not db.query(GroupMember).filter(
+            GroupMember.group_id == group_id,
+            GroupMember.user_id == current_user.id,
+        ).first():
+            raise HTTPException(403, "Not a member of this group")
+        return (
+            db.query(SplitExpense)
+            .filter(SplitExpense.group_id == group_id)
+            .order_by(SplitExpense.created_at.desc())
+            .all()
+        )
     participant_split_ids = (
         db.query(SplitShare.split_expense_id)
         .filter(SplitShare.user_id == current_user.id)
@@ -320,50 +333,140 @@ def get_balances(
     return sorted(result, key=lambda x: x.net_amount, reverse=True)
 
 
-@router.post("/settle")
-def settle(
-    payload: SettleRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """
-    Mark every unsettled split_share between the caller and friend_user_id
-    as settled.  Both directions are cleared (i.e. shares the friend owes
-    the caller AND shares the caller owes the friend).
-
-    After settlement the caller should re-fetch /splits/balances — the
-    simplified view will update automatically because the underlying gross
-    debts have changed.
-    """
-    friend_id = payload.friend_user_id
-    if friend_id == current_user.id:
-        raise HTTPException(status_code=400, detail="Cannot settle with yourself")
-    if not db.query(User).filter(User.id == friend_id).first():
-        raise HTTPException(status_code=404, detail="User not found")
-
+def _do_settle(db: Session, user_a_id: int, user_b_id: int) -> int:
+    now = datetime.now()
     shares = (
         db.query(SplitShare)
         .join(SplitExpense, SplitExpense.id == SplitShare.split_expense_id)
         .filter(
             SplitShare.settled.is_(False),
             or_(
-                and_(
-                    SplitShare.user_id == current_user.id,
-                    SplitExpense.paid_by_user_id == friend_id,
-                ),
-                and_(
-                    SplitShare.user_id == friend_id,
-                    SplitExpense.paid_by_user_id == current_user.id,
-                ),
+                and_(SplitShare.user_id == user_a_id, SplitExpense.paid_by_user_id == user_b_id),
+                and_(SplitShare.user_id == user_b_id, SplitExpense.paid_by_user_id == user_a_id),
             ),
         )
         .all()
     )
-
-    now = datetime.now()
     for share in shares:
         share.settled = True
         share.settled_at = now
+    return len(shares)
 
+
+# ── Settlement request endpoints (mutual approval flow) ───────────────────────
+
+@router.get("/settle/incoming", response_model=List[SettlementRequestResponse])
+def incoming_settle_requests(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return db.query(SettlementRequest).filter(
+        SettlementRequest.target_id == current_user.id,
+        SettlementRequest.status == "pending",
+    ).all()
+
+
+@router.get("/settle/sent", response_model=List[SettlementRequestResponse])
+def sent_settle_requests(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return db.query(SettlementRequest).filter(
+        SettlementRequest.requester_id == current_user.id,
+        SettlementRequest.status == "pending",
+    ).all()
+
+
+@router.post("/settle/request", response_model=SettlementRequestResponse, status_code=201)
+def request_settle(
+    payload: SettleRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    friend_id = payload.friend_user_id
+    if friend_id == current_user.id:
+        raise HTTPException(400, "Cannot settle with yourself")
+    if not db.query(User).filter(User.id == friend_id).first():
+        raise HTTPException(404, "User not found")
+    existing = db.query(SettlementRequest).filter(
+        or_(
+            and_(SettlementRequest.requester_id == current_user.id, SettlementRequest.target_id == friend_id),
+            and_(SettlementRequest.requester_id == friend_id, SettlementRequest.target_id == current_user.id),
+        ),
+        SettlementRequest.status == "pending",
+    ).first()
+    if existing:
+        raise HTTPException(400, "A settlement request already exists between you two")
+    req = SettlementRequest(requester_id=current_user.id, target_id=friend_id)
+    db.add(req)
     db.commit()
-    return {"settled_count": len(shares), "with_user": friend_id}
+    db.refresh(req)
+    return req
+
+
+@router.post("/settle/approve/{request_id}")
+def approve_settle(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    req = db.query(SettlementRequest).filter(SettlementRequest.id == request_id).first()
+    if not req:
+        raise HTTPException(404, "Settlement request not found")
+    if req.target_id != current_user.id:
+        raise HTTPException(403, "Not your request to approve")
+    if req.status != "pending":
+        raise HTTPException(400, f"Request is already {req.status}")
+    count = _do_settle(db, req.requester_id, req.target_id)
+    req.status = "approved"
+    db.commit()
+    return {"settled_count": count, "with_user": req.requester_id}
+
+
+@router.post("/settle/reject/{request_id}")
+def reject_settle(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    req = db.query(SettlementRequest).filter(SettlementRequest.id == request_id).first()
+    if not req:
+        raise HTTPException(404, "Settlement request not found")
+    if req.target_id != current_user.id:
+        raise HTTPException(403, "Not your request to reject")
+    if req.status != "pending":
+        raise HTTPException(400, f"Request is already {req.status}")
+    req.status = "rejected"
+    db.commit()
+    return {"rejected": True}
+
+
+@router.delete("/settle/cancel/{request_id}", status_code=204)
+def cancel_settle_request(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    req = db.query(SettlementRequest).filter(SettlementRequest.id == request_id).first()
+    if not req:
+        raise HTTPException(404, "Settlement request not found")
+    if req.requester_id != current_user.id:
+        raise HTTPException(403, "Not your request to cancel")
+    db.delete(req)
+    db.commit()
+
+
+@router.post("/settle")
+def settle(
+    payload: SettleRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    friend_id = payload.friend_user_id
+    if friend_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot settle with yourself")
+    if not db.query(User).filter(User.id == friend_id).first():
+        raise HTTPException(status_code=404, detail="User not found")
+    count = _do_settle(db, current_user.id, friend_id)
+    db.commit()
+    return {"settled_count": count, "with_user": friend_id}

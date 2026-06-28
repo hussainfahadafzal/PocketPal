@@ -137,6 +137,19 @@ class Friendship(Base):
     addressee = relationship("User", foreign_keys=[addressee_id])
 
 
+class SettlementRequest(Base):
+    __tablename__ = "settlement_requests"
+
+    id           = Column(Integer, primary_key=True, index=True)
+    requester_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    target_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
+    status       = Column(String, default="pending", nullable=False)  # pending | approved | rejected
+    created_at   = Column(DateTime, default=datetime.now)
+
+    requester = relationship("User", foreign_keys=[requester_id])
+    target    = relationship("User", foreign_keys=[target_id])
+
+
 # ── Social: Groups ────────────────────────────────────────────────────────────
 
 class Group(Base):
