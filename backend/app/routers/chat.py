@@ -3,7 +3,7 @@ from time import time
 import threading
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_user
@@ -31,6 +31,108 @@ def _are_friends(db: Session, user_id: int, friend_id: int) -> bool:
         )
         .first()
     ) is not None
+
+
+# ── Unread counts (no path param — must come before /{friend_id} routes) ─────
+
+@router.get("/unread-count")
+def unread_count(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Total unread messages across all conversations for the current user."""
+    try:
+        count = (
+            db.query(DirectMessage)
+            .filter(
+                DirectMessage.receiver_id == current_user.id,
+                DirectMessage.is_read.is_(False),
+            )
+            .count()
+        )
+        return {"count": count}
+    except Exception:
+        return {"count": 0}
+
+
+@router.get("/unread-per-friend")
+def unread_per_friend(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Unread count per sender — used to show per-conversation badges."""
+    try:
+        rows = (
+            db.query(DirectMessage.sender_id, func.count(DirectMessage.id).label("cnt"))
+            .filter(
+                DirectMessage.receiver_id == current_user.id,
+                DirectMessage.is_read.is_(False),
+            )
+            .group_by(DirectMessage.sender_id)
+            .all()
+        )
+        return {str(row.sender_id): row.cnt for row in rows}
+    except Exception:
+        return {}
+
+
+@router.get("/conversations")
+def conversations(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """All friend conversations with last message preview, sorted by recency."""
+    friendships = (
+        db.query(Friendship)
+        .filter(
+            or_(
+                Friendship.requester_id == current_user.id,
+                Friendship.addressee_id == current_user.id,
+            ),
+            Friendship.status == "accepted",
+        )
+        .all()
+    )
+
+    result = []
+    for fs in friendships:
+        friend_id = fs.addressee_id if fs.requester_id == current_user.id else fs.requester_id
+        friend = db.query(User).filter(User.id == friend_id).first()
+        if not friend:
+            continue
+
+        last_msg = (
+            db.query(DirectMessage)
+            .filter(
+                or_(
+                    and_(DirectMessage.sender_id == current_user.id, DirectMessage.receiver_id == friend_id),
+                    and_(DirectMessage.sender_id == friend_id, DirectMessage.receiver_id == current_user.id),
+                )
+            )
+            .order_by(DirectMessage.created_at.desc())
+            .first()
+        )
+
+        unread = (
+            db.query(func.count(DirectMessage.id))
+            .filter(
+                DirectMessage.sender_id == friend_id,
+                DirectMessage.receiver_id == current_user.id,
+                DirectMessage.is_read.is_(False),
+            )
+            .scalar()
+        ) or 0
+
+        result.append({
+            "friend": {"id": friend.id, "name": friend.name, "email": friend.email},
+            "last_message": last_msg.content if last_msg else None,
+            "last_message_at": last_msg.created_at.strftime('%Y-%m-%dT%H:%M:%SZ') if last_msg else None,
+            "last_message_mine": (last_msg.sender_id == current_user.id) if last_msg else False,
+            "unread_count": unread,
+        })
+
+    result.sort(key=lambda x: x["last_message_at"] or "", reverse=True)
+    return result
 
 
 # ── Sub-path routes defined before /{friend_id} to avoid shadowing ───────────

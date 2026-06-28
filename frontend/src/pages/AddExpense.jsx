@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import jsQR from 'jsqr';
 import client from '../api/client';
 import Button from '../components/Button';
-import Card from '../components/Card';
 
 const UPI_LS_KEY = 'pocketpal_upi';
 
@@ -397,7 +396,7 @@ function ConfirmScreen({ amount, savedExpense, vpa, onDone }) {
               </div>
             </div>
 
-            <Card>
+            <div className="rounded-3xl p-5" style={{ background: 'rgba(13,18,37,0.85)', border: '1px solid rgba(30,45,78,0.6)' }}>
               <div className="flex items-center justify-between mb-3">
                 <p className="text-text text-sm font-semibold">Pay via UPI</p>
                 <button
@@ -440,7 +439,7 @@ function ConfirmScreen({ amount, savedExpense, vpa, onDone }) {
                   Scan a payee QR code above, or go back and enter a UPI ID to pay.
                 </p>
               )}
-            </Card>
+            </div>
 
             <Button
               variant="ghost"
@@ -574,7 +573,7 @@ export default function AddExpense() {
         </header>
 
         <div className="max-w-sm mx-auto px-4 pt-5 flex flex-col gap-4">
-          <Card>
+          <div className="rounded-3xl p-5" style={{ background: 'rgba(13,18,37,0.85)', border: '1px solid rgba(30,45,78,0.6)' }}>
             <div className="flex flex-col gap-5">
 
               <div className="flex flex-col gap-1.5">
@@ -660,10 +659,10 @@ export default function AddExpense() {
               </Button>
 
             </div>
-          </Card>
+          </div>
 
           {hasAmount && (
-            <Card>
+            <div className="rounded-3xl p-5" style={{ background: 'rgba(13,18,37,0.85)', border: '1px solid rgba(30,45,78,0.6)' }}>
               <div className="flex flex-col gap-4">
                 <div>
                   <p className="text-text text-sm font-semibold">Pay via UPI</p>
@@ -758,7 +757,7 @@ export default function AddExpense() {
                   </button>
                 )}
               </div>
-            </Card>
+            </div>
           )}
         </div>
       </div>

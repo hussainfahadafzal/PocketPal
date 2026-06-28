@@ -1,6 +1,6 @@
 import calendar
 import math
-from datetime import date, datetime
+from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -15,6 +15,7 @@ from ..utils import (
     get_cycle_context,
     get_daily_spend_limit,
     get_daily_totals_for_cycle,
+    today_ist,
 )
 
 router = APIRouter(prefix="/expenses", tags=["expenses"])
@@ -37,7 +38,7 @@ def create_expense(
         spare = round(next_10 - payload.amount, 2)
 
         if spare > 0:
-            today = date.today()
+            today = today_ist()
             # Compute streak BEFORE this expense is saved (pre-save totals)
             ctx = get_cycle_context(wallet, today)
             daily = get_daily_totals_for_cycle(db, current_user.id, ctx["cycle_start"], ctx["effective_today"])

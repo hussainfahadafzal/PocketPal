@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import Button from '../components/Button';
-import Card from '../components/Card';
 import Input from '../components/Input';
 
 function tomorrowISO() {
@@ -101,7 +100,7 @@ export default function Onboarding() {
           <p className="text-muted text-sm mt-2">30 seconds. Change it any time.</p>
         </div>
 
-        <Card>
+        <div className="rounded-3xl p-5" style={{ background: 'rgba(13,18,37,0.90)', border: '1px solid rgba(30,45,78,0.65)' }}>
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
 
             {/* Balance */}
@@ -223,7 +222,7 @@ export default function Onboarding() {
 
             <Button type="submit" loading={loading}>Start tracking</Button>
           </form>
-        </Card>
+        </div>
 
       </div>
     </div>

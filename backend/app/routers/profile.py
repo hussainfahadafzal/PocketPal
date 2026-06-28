@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -15,6 +15,7 @@ from ..models import (
     Wallet,
 )
 from ..schemas import ChangePasswordRequest, UpdateProfileRequest, UserResponse
+from ..utils import today_ist
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 
@@ -59,7 +60,7 @@ def update_profile(
                 wallet.savings_goal = payload.savings_goal
             if payload.goal_name is not None:
                 wallet.goal_name = payload.goal_name
-            today = date.today()
+            today = today_ist()
             if payload.next_refill_date is not None:
                 if payload.next_refill_date <= today:
                     raise HTTPException(

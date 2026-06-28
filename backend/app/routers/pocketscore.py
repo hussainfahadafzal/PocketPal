@@ -12,7 +12,7 @@ Total                    850
 
 Labels: 0–349 Poor | 350–549 Fair | 550–699 Good | 700–850 Excellent
 """
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
@@ -27,6 +27,7 @@ from ..utils import (
     get_cycle_context,
     get_daily_spend_limit,
     get_daily_totals_for_cycle,
+    today_ist,
 )
 
 router = APIRouter(prefix="/pocketscore", tags=["pocketscore"])
@@ -41,7 +42,7 @@ def get_pocket_score(
     if not wallet:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wallet not set up yet")
 
-    today = date.today()
+    today = today_ist()
     ctx = get_cycle_context(wallet, today)
 
     daily = get_daily_totals_for_cycle(

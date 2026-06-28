@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import client from '../api/client';
 import Spinner from '../components/Spinner';
 import TopBar from '../components/TopBar';
+
+const SPRING = { duration: 0.44, ease: [0.22, 1, 0.36, 1] };
+const sectionVariants = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
+const rowVariants = { hidden: { opacity: 0, x: -12 }, show: { opacity: 1, x: 0, transition: SPRING } };
 
 const inr = (n) => Math.round(Math.abs(n)).toLocaleString('en-IN');
 
@@ -111,7 +116,8 @@ export default function History() {
   const catById = Object.fromEntries(categories.map((c) => [c.id, c]));
 
   const grouped = expenses.reduce((acc, exp) => {
-    const day = exp.created_at.split('T')[0];
+    const d = new Date(exp.created_at);
+    const day = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     (acc[day] = acc[day] || []).push(exp);
     return acc;
   }, {});
@@ -147,7 +153,10 @@ export default function History() {
 
       <div className="max-w-sm mx-auto px-4 pt-5">
 
-        <h1 className="font-heading text-2xl font-semibold text-text mb-5">History</h1>
+        <div className="mb-5">
+          <p className="text-muted/50 text-xs mb-0.5">Your spend log</p>
+          <h1 className="font-heading text-2xl font-bold text-text">History</h1>
+        </div>
 
         {/* ── Filters ── */}
         <div className="flex gap-2 mb-4">
@@ -155,17 +164,15 @@ export default function History() {
             type="month"
             value={month}
             onChange={(e) => setMonth(e.target.value)}
-            className="flex-1 bg-surface border border-border rounded-xl px-3 py-3
-              text-text text-base outline-none focus:border-primary transition-all duration-150
-              [color-scheme:dark]"
+            className="flex-1 rounded-xl px-3 py-3 text-text text-base outline-none transition-all duration-150 [color-scheme:dark]"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
           />
           <div className="relative flex-1">
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full bg-surface border border-border rounded-xl px-3 pr-8 py-3
-                text-text text-base outline-none focus:border-primary transition-all duration-150
-                appearance-none"
+              className="w-full rounded-xl px-3 pr-8 py-3 text-text text-base outline-none transition-all duration-150 appearance-none"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
             >
               <option value="">All categories</option>
               {categories.map((c) => (
@@ -179,26 +186,34 @@ export default function History() {
         </div>
 
         {/* ── Total banner ── */}
-        {!loading && !error && expenses.length > 0 && (
-          <div className="flex items-center justify-between bg-surface border border-border rounded-2xl px-4 py-3 mb-5">
-            <span className="text-muted text-sm">Total for period</span>
-            <div className="flex items-center gap-3">
-              <span className="font-heading text-lg font-bold text-text">₹{inr(total)}</span>
-              <button
+        <AnimatePresence>
+          {!loading && !error && expenses.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              transition={SPRING}
+              className="flex items-center justify-between rounded-2xl px-4 py-3.5 mb-1"
+              style={{ background: 'linear-gradient(135deg,rgba(59,108,255,0.10) 0%,rgba(139,92,246,0.07) 100%)', border: '1px solid rgba(59,108,255,0.18)' }}
+            >
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted/50 mb-0.5">Total for period</p>
+                <span className="font-heading text-xl font-bold text-text">₹{inr(total)}</span>
+              </div>
+              <motion.button
+                whileTap={{ scale: 0.94 }}
                 onClick={exportCSV}
                 title="Export as CSV"
-                className="flex items-center gap-1.5 text-xs font-medium text-primary border border-primary/30
-                  rounded-lg px-2.5 py-1.5 hover:bg-primary/10 active:scale-95 transition-all duration-150"
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl text-primary transition-all duration-150"
+                style={{ background: 'rgba(59,108,255,0.12)', border: '1px solid rgba(59,108,255,0.22)' }}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                CSV
-              </button>
-            </div>
-          </div>
-        )}
+                Export CSV
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ── Content ── */}
         {loading ? (
@@ -221,36 +236,40 @@ export default function History() {
           <EmptyState onAdd={() => navigate('/add')} />
 
         ) : (
-          <div className="flex flex-col gap-6">
+          <motion.div variants={sectionVariants} initial="hidden" animate="show" className="flex flex-col gap-5">
             {sortedDays.map((day) => (
-              <section key={day}>
-                <p className="text-muted text-xs font-semibold uppercase tracking-widest mb-2 px-1">
+              <motion.section key={day} variants={rowVariants}>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted/50 mb-2.5 px-1">
                   {dayLabel(day)}
                 </p>
 
-                <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+                <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(13,18,37,0.85)', border: '1px solid rgba(30,45,78,0.6)' }}>
                   {grouped[day].map((exp, idx) => {
                     const cat = catById[exp.category_id];
                     const isLast = idx === grouped[day].length - 1;
                     const isPending = pendingDelete === exp.id;
 
                     return (
-                      <div
+                      <motion.div
                         key={exp.id}
+                        layout
                         className={`flex items-center gap-3 px-4 py-3.5 transition-colors duration-150
                           ${isPending ? 'bg-danger/5' : ''}
-                          ${!isLast ? 'border-b border-border/40' : ''}`}
+                          ${!isLast ? 'border-b' : ''}`}
+                        style={!isLast ? { borderBottomColor: 'rgba(30,45,78,0.4)' } : {}}
                       >
                         <div
-                          className="w-2.5 h-2.5 rounded-full shrink-0 mt-px"
-                          style={{ backgroundColor: cat?.color ?? '#94A3B8' }}
-                        />
+                          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                          style={{ backgroundColor: `${cat?.color ?? '#94A3B8'}18` }}
+                        >
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat?.color ?? '#94A3B8' }} />
+                        </div>
 
                         <div className="flex-1 min-w-0">
-                          <p className="text-text text-sm truncate">
+                          <p className="text-text text-sm font-medium truncate">
                             {exp.note || cat?.name || 'Expense'}
                           </p>
-                          <p className="text-muted text-xs mt-0.5">
+                          <p className="text-muted/55 text-xs mt-0.5">
                             {timeLabel(exp.created_at)}
                             {cat && <> · <span>{cat.name}</span></>}
                           </p>
@@ -286,13 +305,13 @@ export default function History() {
                             <TrashIcon />
                           </button>
                         )}
-                      </div>
+                      </motion.div>
                     );
                   })}
                 </div>
-              </section>
+              </motion.section>
             ))}
-          </div>
+          </motion.div>
         )}
 
       </div>

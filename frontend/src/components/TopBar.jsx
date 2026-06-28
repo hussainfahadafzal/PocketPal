@@ -10,22 +10,23 @@ export default function TopBar() {
   const location  = useLocation();
   const [friendBadge,  setFriendBadge]  = useState(0);
   const [settleBadge,  setSettleBadge]  = useState(0);
+  const [msgBadge,     setMsgBadge]     = useState(0);
 
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
 
     async function fetchBadges() {
-      try {
-        const [fRes, sRes] = await Promise.all([
-          client.get('/friends/requests'),
-          client.get('/splits/settle/incoming'),
-        ]);
-        if (!cancelled) {
-          setFriendBadge(fRes.data.length);
-          setSettleBadge(sRes.data.length);
-        }
-      } catch {}
+      const [fRes, sRes, mRes] = await Promise.allSettled([
+        client.get('/friends/requests'),
+        client.get('/splits/settle/incoming'),
+        client.get('/chat/unread-count'),
+      ]);
+      if (!cancelled) {
+        if (fRes.status === 'fulfilled') setFriendBadge(fRes.value.data.length);
+        if (sRes.status === 'fulfilled') setSettleBadge(sRes.value.data.length);
+        if (mRes.status === 'fulfilled') setMsgBadge(mRes.value.data.count ?? 0);
+      }
     }
 
     fetchBadges();
@@ -113,6 +114,15 @@ export default function TopBar() {
                 <path strokeLinecap="round" strokeLinejoin="round"
                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
+              {msgBadge > 0 && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-0.5 -right-0.5 h-[18px] min-w-[18px] px-1 rounded-full flex items-center justify-center text-[9px] font-black text-white"
+                  style={{ background: 'linear-gradient(135deg,#8B5CF6,#6D28D9)', boxShadow: '0 2px 6px rgba(139,92,246,0.55)' }}>
+                  {msgBadge > 9 ? '9+' : msgBadge}
+                </motion.span>
+              )}
             </motion.button>
 
           </div>

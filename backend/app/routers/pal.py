@@ -1,6 +1,6 @@
 import calendar
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, Depends
@@ -10,6 +10,7 @@ from ..auth import get_current_user
 from ..database import get_db
 from ..models import Category, Expense, User, Wallet
 from ..schemas import Nudge
+from ..utils import _date_ist, today_ist
 
 router = APIRouter(prefix="/pal", tags=["pal"])
 
@@ -18,12 +19,14 @@ _WEEKDAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satur
 
 def _month_expenses(db: Session, user_id: int, year: int, month: int) -> List[Expense]:
     last_day = calendar.monthrange(year, month)[1]
+    # Wide window so IST-boundary expenses (stored as previous-day UTC) are included.
+    from datetime import timedelta
     return (
         db.query(Expense)
         .filter(
             Expense.user_id == user_id,
-            Expense.created_at >= datetime(year, month, 1),
-            Expense.created_at <= datetime(year, month, last_day, 23, 59, 59),
+            Expense.created_at >= datetime(year, month, 1) - timedelta(hours=6),
+            Expense.created_at <= datetime(year, month, last_day, 23, 59, 59) + timedelta(hours=6),
         )
         .all()
     )
@@ -34,21 +37,18 @@ def get_nudges(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    today = date.today()
+    today = today_ist()
     year, month = today.year, today.month
     days_in_month = calendar.monthrange(year, month)[1]
     days_elapsed = today.day
     days_left = days_in_month - days_elapsed + 1  # includes today
 
     expenses = _month_expenses(db, current_user.id, year, month)
+    # Filter to expenses that fall in this month in IST
+    expenses = [e for e in expenses if _date_ist(e.created_at).month == month and _date_ist(e.created_at).year == year]
     total_spent = sum(e.amount for e in expenses)
 
-    today_dt_start = datetime(year, month, today.day)
-    today_dt_end = datetime(year, month, today.day, 23, 59, 59)
-    spent_today = sum(
-        e.amount for e in expenses
-        if today_dt_start <= e.created_at <= today_dt_end
-    )
+    spent_today = sum(e.amount for e in expenses if _date_ist(e.created_at) == today)
 
     wallet = db.query(Wallet).filter(Wallet.user_id == current_user.id).first()
 
@@ -93,7 +93,7 @@ def get_nudges(
         wd_totals: dict[int, float] = defaultdict(float)
         wd_days: dict[int, set] = defaultdict(set)
         for exp in expenses:
-            d = exp.created_at.date()
+            d = _date_ist(exp.created_at)
             wd = d.weekday()  # 0 = Monday, 6 = Sunday
             wd_totals[wd] += exp.amount
             wd_days[wd].add(d)
@@ -122,7 +122,7 @@ def get_nudges(
     if total_spent > 0:
         weekend_spent = sum(
             e.amount for e in expenses
-            if e.created_at.weekday() in (5, 6)  # Saturday, Sunday
+            if _date_ist(e.created_at).weekday() in (5, 6)  # Saturday, Sunday
         )
         if weekend_spent / total_spent > 0.55:
             nudges.append(Nudge(

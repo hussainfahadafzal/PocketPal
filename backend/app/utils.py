@@ -4,11 +4,25 @@ Centralised here so streak, limit, and cycle logic stays consistent everywhere.
 """
 import calendar
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
 from .models import Expense, Wallet
+
+# All stored datetimes are naive UTC (datetime.now() on a UTC cloud server).
+# Convert to IST before any date comparison so "today" matches the user's clock.
+_IST = timezone(timedelta(hours=5, minutes=30))
+
+
+def today_ist() -> date:
+    """Current date in IST — use everywhere instead of date.today()."""
+    return datetime.now(_IST).date()
+
+
+def _date_ist(naive_utc: datetime) -> date:
+    """Convert a naive UTC datetime (as stored in DB) to an IST date."""
+    return naive_utc.replace(tzinfo=timezone.utc).astimezone(_IST).date()
 
 
 # ── Budget cycle helpers ──────────────────────────────────────────────────────
@@ -55,37 +69,43 @@ def get_cycle_context(wallet: Wallet, today: date) -> dict:
 def get_daily_totals_for_cycle(
     db: Session, user_id: int, cycle_start: date, through: date
 ) -> dict:
-    """Return {date: total_spent} for every day from cycle_start through `through` inclusive."""
+    """Return {IST-date: total_spent} for every day from cycle_start through `through` inclusive."""
+    # Fetch a slightly wider window (±1 day) to catch UTC↔IST boundary expenses.
+    fetch_start = datetime(cycle_start.year, cycle_start.month, cycle_start.day) - timedelta(hours=6)
+    fetch_end   = datetime(through.year, through.month, through.day, 23, 59, 59) + timedelta(hours=6)
     rows = (
         db.query(Expense)
         .filter(
             Expense.user_id == user_id,
-            Expense.created_at >= datetime(cycle_start.year, cycle_start.month, cycle_start.day),
-            Expense.created_at <= datetime(through.year, through.month, through.day, 23, 59, 59),
+            Expense.created_at >= fetch_start,
+            Expense.created_at <= fetch_end,
         )
         .all()
     )
     totals: dict[date, float] = defaultdict(float)
     for exp in rows:
-        totals[exp.created_at.date()] += exp.amount
+        totals[_date_ist(exp.created_at)] += exp.amount
     return totals
 
 
 def get_daily_totals_for_month(db: Session, user_id: int, year: int, month: int) -> dict:
-    """Return {date: total_spent} for a specific calendar month (used by pocketscore categories)."""
+    """Return {IST-date: total_spent} for a specific calendar month."""
     last_day = calendar.monthrange(year, month)[1]
+    # Wider fetch window to capture IST boundary expenses stored as UTC.
+    fetch_start = datetime(year, month, 1) - timedelta(hours=6)
+    fetch_end   = datetime(year, month, last_day, 23, 59, 59) + timedelta(hours=6)
     rows = (
         db.query(Expense)
         .filter(
             Expense.user_id == user_id,
-            Expense.created_at >= datetime(year, month, 1),
-            Expense.created_at <= datetime(year, month, last_day, 23, 59, 59),
+            Expense.created_at >= fetch_start,
+            Expense.created_at <= fetch_end,
         )
         .all()
     )
     totals: dict[date, float] = defaultdict(float)
     for exp in rows:
-        totals[exp.created_at.date()] += exp.amount
+        totals[_date_ist(exp.created_at)] += exp.amount
     return totals
 
 

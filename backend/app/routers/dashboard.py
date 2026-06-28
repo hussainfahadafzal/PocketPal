@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -13,6 +13,7 @@ from ..utils import (
     get_daily_spend_limit,
     get_daily_totals_for_cycle,
     get_daily_totals_for_month,
+    today_ist,
 )
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -27,7 +28,7 @@ def get_dashboard(
     if not wallet:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wallet not set up yet")
 
-    today = date.today()
+    today = today_ist()
     ctx = get_cycle_context(wallet, today)
 
     # Calendar-month totals: source of truth for balance, limit, spent_today.
