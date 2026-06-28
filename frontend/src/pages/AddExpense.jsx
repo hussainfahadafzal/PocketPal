@@ -17,7 +17,8 @@ function isValidVpa(s) {
 }
 
 // Parse a UPI QR payload into { pa, am }
-// Format: upi://pay?pa=VPA&pn=Name&am=Amount&cu=INR
+// Format: upi://pay?pa=VPA&pn=Name&cu=INR  (am not used in deep links — prefilled
+// amounts to personal UPI IDs are blocked by UPI apps for security)
 // Some QRs are just the raw VPA string
 function parseUpiQr(raw) {
   if (!raw) return null;
@@ -57,32 +58,32 @@ const UPI_APPS = [
     label: 'PhonePe',
     color: '#5f259f',
     abbr: 'Ph',
-    href: (pa, pn, am) =>
-      `phonepe://pay?pa=${encodeURIComponent(pa)}&pn=${encodeURIComponent(pn)}&am=${encodeURIComponent(am)}&cu=INR&mode=00&purpose=00`,
+    href: (pa, pn) =>
+      `phonepe://pay?pa=${encodeURIComponent(pa)}&pn=${encodeURIComponent(pn)}&cu=INR&mode=00&purpose=00`,
   },
   {
     id: 'gpay',
     label: 'GPay',
     color: '#1a73e8',
     abbr: 'G',
-    href: (pa, pn, am) =>
-      `tez://upi/pay?pa=${encodeURIComponent(pa)}&pn=${encodeURIComponent(pn)}&am=${encodeURIComponent(am)}&cu=INR`,
+    href: (pa, pn) =>
+      `tez://upi/pay?pa=${encodeURIComponent(pa)}&pn=${encodeURIComponent(pn)}&cu=INR`,
   },
   {
     id: 'paytm',
     label: 'Paytm',
     color: '#002970',
     abbr: 'Pt',
-    href: (pa, pn, am) =>
-      `paytmmp://pay?pa=${encodeURIComponent(pa)}&pn=${encodeURIComponent(pn)}&am=${encodeURIComponent(am)}&cu=INR`,
+    href: (pa, pn) =>
+      `paytmmp://pay?pa=${encodeURIComponent(pa)}&pn=${encodeURIComponent(pn)}&cu=INR`,
   },
   {
     id: 'upi',
     label: 'Other',
     color: '#6366f1',
     abbr: '↗',
-    href: (pa, pn, am) =>
-      `upi://pay?pa=${encodeURIComponent(pa)}&pn=${encodeURIComponent(pn)}&am=${encodeURIComponent(am)}&cu=INR`,
+    href: (pa, pn) =>
+      `upi://pay?pa=${encodeURIComponent(pa)}&pn=${encodeURIComponent(pn)}&cu=INR`,
   },
 ];
 
@@ -299,11 +300,20 @@ function UpiPicker({ vpa, amount }) {
 
   return (
     <div className="flex flex-col gap-3">
+      {amount && parseFloat(amount) > 0 && (
+        <p className="text-xs text-center text-muted leading-relaxed">
+          Enter{' '}
+          <span className="font-semibold text-text">
+            ₹{parseFloat(amount).toLocaleString('en-IN')}
+          </span>{' '}
+          manually in your UPI app — amount is not pre-filled.
+        </p>
+      )}
       <div className="grid grid-cols-4 gap-2">
         {UPI_APPS.map((app) => (
           <a
             key={app.id}
-            href={app.href(vpa, 'PocketPal', amount)}
+            href={app.href(vpa, 'PocketPal')}
             className="flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl
               active:scale-95 transition-all duration-150 select-none"
             style={{ backgroundColor: app.color }}
@@ -415,9 +425,13 @@ function ConfirmScreen({ amount, savedExpense, vpa, onDone }) {
               {activeVpa ? (
                 <>
                   <p className="text-muted text-xs mb-4">
-                    Expense logged. Complete payment in your UPI app.{' '}
+                    Pay{' '}
+                    <span className="font-semibold text-text">
+                      ₹{parseFloat(amount).toLocaleString('en-IN')}
+                    </span>{' '}
+                    to{' '}
                     <span className="font-mono text-text">{activeVpa}</span>
-                    <span className="text-muted"> · ₹{parseFloat(amount).toLocaleString('en-IN')}</span>
+                    {' '}— enter this amount manually in your UPI app.
                   </p>
                   <UpiPicker vpa={activeVpa} amount={amount} />
                 </>

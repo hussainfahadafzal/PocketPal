@@ -154,7 +154,7 @@ export default function Chat() {
 
           <div className="flex-1 min-w-0">
             <p className="font-bold text-text text-sm leading-tight truncate">{friendName}</p>
-            <p className="text-[10px] text-muted/40 leading-none">Split chat</p>
+            <p className="text-[10px] text-muted/40 leading-none mt-0.5">Direct message</p>
           </div>
         </div>
       </div>
@@ -169,12 +169,14 @@ export default function Chat() {
             </div>
           ) : messages.length === 0 ? (
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center gap-3 py-16 text-center"
+              className="flex flex-col items-center gap-4 py-16 text-center"
             >
-              <span className="text-4xl">💬</span>
+              <span className="text-5xl">👋</span>
               <div>
-                <p className="font-bold text-text text-base">Start the convo</p>
-                <p className="text-muted/50 text-sm mt-1">Clear up who owes what, settle up, or just chat.</p>
+                <p className="font-bold text-text text-base">Say hi to start the conversation</p>
+                <p className="text-muted/50 text-sm mt-1.5 leading-relaxed max-w-[200px] mx-auto">
+                  No messages yet — kick things off!
+                </p>
               </div>
             </motion.div>
           ) : (

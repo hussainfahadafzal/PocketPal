@@ -361,6 +361,7 @@ class ChangePasswordRequest(BaseModel):
     def passwords_match(self):
         if self.new_password != self.confirm_password:
             raise ValueError("New passwords do not match")
+        return self
 
 
 # ── Chat ──────────────────────────────────────────────────────────────────────
@@ -379,4 +380,3 @@ class DirectMessageResponse(BaseModel):
     is_mine: bool = False
 
     model_config = {"from_attributes": True}
-        return self

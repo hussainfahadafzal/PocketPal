@@ -6,6 +6,7 @@ import client from '../api/client';
 import TopBar from '../components/TopBar';
 import Button from '../components/Button';
 import Spinner from '../components/Spinner';
+import Toast from '../components/Toast';
 import { useCountUp } from '../hooks/useCountUp';
 
 // ── Motion constants ──────────────────────────────────────────────────────────
@@ -302,9 +303,9 @@ function BalanceRow({ balance, dir, onSettle, settling, delay }) {
             ) : !confirm ? (
               <motion.button key="settle-btn"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                whileTap={{ scale: 0.9 }}
+                whileTap={{ scale: 0.92 }}
                 onClick={() => setConfirm(true)}
-                className="text-xs font-bold px-3 py-2 rounded-xl transition-all min-h-[36px]"
+                className="text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all min-h-[44px]"
                 style={{ background: green ? 'rgba(16,185,129,0.18)' : 'rgba(239,68,68,0.18)', color: green ? '#10B981' : '#EF4444' }}>
                 Settle up
               </motion.button>
@@ -312,15 +313,15 @@ function BalanceRow({ balance, dir, onSettle, settling, delay }) {
               <motion.div key="confirm"
                 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
                 className="flex gap-1.5">
-                <motion.button whileTap={{ scale: 0.9 }}
+                <motion.button whileTap={{ scale: 0.92 }}
                   onClick={handleSettle}
-                  className="text-xs font-black px-3 py-2 rounded-xl min-h-[36px]"
+                  className="text-xs font-black px-3.5 py-2.5 rounded-xl min-h-[44px]"
                   style={{ background: 'rgba(16,185,129,0.2)', color: '#10B981' }}>
                   Yes
                 </motion.button>
-                <motion.button whileTap={{ scale: 0.9 }}
+                <motion.button whileTap={{ scale: 0.92 }}
                   onClick={() => setConfirm(false)}
-                  className="text-xs font-bold px-3 py-2 rounded-xl min-h-[36px]"
+                  className="text-xs font-bold px-3.5 py-2.5 rounded-xl min-h-[44px]"
                   style={{ background: 'rgba(255,255,255,0.07)', color: '#7A8BAD' }}>
                   No
                 </motion.button>
@@ -334,23 +335,24 @@ function BalanceRow({ balance, dir, onSettle, settling, delay }) {
 }
 
 // ── Friends view ──────────────────────────────────────────────────────────────
-function FriendsView({ friends, requests, currentUser, onRefresh, navigate }) {
+function FriendsView({ friends, requests, sentRequests, currentUser, onRefresh, navigate, onToast }) {
   const [mode,       setMode]       = useState('email');
   const [input,      setInput]      = useState('');
   const [adding,     setAdding]     = useState(false);
   const [addError,   setAddError]   = useState('');
-  const [addSuccess, setAddSuccess] = useState('');
   const [responding, setResponding] = useState(null);
+  const [cancelling, setCancelling] = useState(null);
   const [copied,     setCopied]     = useState(false);
 
   async function sendRequest() {
     if (!input.trim()) return;
-    setAdding(true); setAddError(''); setAddSuccess('');
+    setAdding(true); setAddError('');
     try {
-      await client.post('/friends/request',
+      const res = await client.post('/friends/request',
         mode === 'email' ? { email: input.trim() } : { invite_code: input.trim().toUpperCase() }
       );
-      setAddSuccess('Request sent!');
+      const targetName = res.data?.addressee?.name || input.trim();
+      onToast?.(`Request sent to ${targetName}`, '👋');
       setInput('');
       onRefresh();
     } catch (err) {
@@ -360,9 +362,20 @@ function FriendsView({ friends, requests, currentUser, onRefresh, navigate }) {
     }
   }
 
-  async function respond(id, action) {
-    setResponding(id);
-    try { await client.post(`/friends/${action}/${id}`); onRefresh(); } catch {} finally { setResponding(null); }
+  async function respond(req, action) {
+    setResponding(req.id);
+    try {
+      await client.post(`/friends/${action}/${req.id}`);
+      if (action === 'accept') onToast?.(`You're now friends with ${req.requester.name}!`, '🎉');
+      onRefresh();
+    } catch {}
+    finally { setResponding(null); }
+  }
+
+  async function cancelRequest(req) {
+    setCancelling(req.id);
+    try { await client.post(`/friends/cancel/${req.id}`); onRefresh(); } catch {}
+    finally { setCancelling(null); }
   }
 
   function copyCode() {
@@ -401,7 +414,7 @@ function FriendsView({ friends, requests, currentUser, onRefresh, navigate }) {
         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted mb-4">Add a friend</p>
         <div className="flex gap-2 mb-4">
           {[{ id: 'email', label: 'Email' }, { id: 'code', label: 'Invite Code' }].map((m) => (
-            <button key={m.id} onClick={() => { setMode(m.id); setInput(''); setAddError(''); setAddSuccess(''); }}
+            <button key={m.id} onClick={() => { setMode(m.id); setInput(''); setAddError(''); }}
               className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${mode === m.id ? 'text-white' : 'text-muted'}`}
               style={mode === m.id ? { background: 'linear-gradient(135deg, #3B6CFF 0%, #8B5CF6 100%)' } : { background: 'rgba(30,45,78,0.55)' }}>
               {m.label}
@@ -422,33 +435,40 @@ function FriendsView({ friends, requests, currentUser, onRefresh, navigate }) {
           </motion.button>
         </div>
         <AnimatePresence>
-          {addError   && <motion.p key="e" initial={{ opacity:0,y:-4 }} animate={{ opacity:1,y:0 }} exit={{ opacity:0 }} className="text-danger text-xs mt-2">{addError}</motion.p>}
-          {addSuccess && <motion.p key="s" initial={{ opacity:0,y:-4 }} animate={{ opacity:1,y:0 }} exit={{ opacity:0 }} className="text-xs font-semibold mt-2" style={{ color:'#10B981' }}>{addSuccess}</motion.p>}
+          {addError && <motion.p key="e" initial={{ opacity:0,y:-4 }} animate={{ opacity:1,y:0 }} exit={{ opacity:0 }} className="text-danger text-xs mt-2">{addError}</motion.p>}
         </AnimatePresence>
       </motion.div>
 
-      {/* Pending requests */}
+      {/* Incoming friend requests */}
       {requests.length > 0 && (
-        <motion.div variants={cardVariants} className="flex flex-col gap-2">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: '#F97316' }}>
-            Pending requests ({requests.length})
-          </p>
+        <motion.div variants={cardVariants} className="flex flex-col gap-2.5">
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-black uppercase tracking-[0.14em]" style={{ color: '#F97316' }}>
+              Friend Requests
+            </p>
+            <span className="h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-black text-white"
+              style={{ background: 'linear-gradient(135deg,#F97316,#EF4444)' }}>
+              {requests.length}
+            </span>
+          </div>
           {requests.map((req) => (
             <motion.div key={req.id}
               initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
-              className="rounded-2xl p-4 flex items-center gap-3"
-              style={{ background:'rgba(249,115,22,0.07)', border:'1px solid rgba(249,115,22,0.2)' }}>
+              className="rounded-2xl p-3.5 flex items-center gap-3 min-h-[64px]"
+              style={{ background:'rgba(249,115,22,0.08)', border:'1px solid rgba(249,115,22,0.22)' }}>
               <Avatar name={req.requester.name} id={req.requester.id} />
               <div className="flex-1 min-w-0">
                 <p className="text-text font-semibold text-sm truncate">{req.requester.name}</p>
                 <p className="text-muted text-xs truncate">{req.requester.email}</p>
               </div>
               <div className="flex gap-2 shrink-0">
-                <motion.button whileTap={{ scale:0.9 }} onClick={() => respond(req.id,'accept')} disabled={responding === req.id}
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-lg"
-                  style={{ background:'rgba(16,185,129,0.2)', color:'#10B981' }}>✓</motion.button>
-                <motion.button whileTap={{ scale:0.9 }} onClick={() => respond(req.id,'reject')} disabled={responding === req.id}
-                  className="w-9 h-9 rounded-xl flex items-center justify-center"
+                <motion.button whileTap={{ scale:0.92 }} onClick={() => respond(req, 'accept')} disabled={responding === req.id}
+                  className="px-3.5 min-h-[44px] rounded-xl flex items-center gap-1.5 text-xs font-bold"
+                  style={{ background:'rgba(16,185,129,0.2)', color:'#10B981' }}>
+                  ✓ Accept
+                </motion.button>
+                <motion.button whileTap={{ scale:0.92 }} onClick={() => respond(req, 'reject')} disabled={responding === req.id}
+                  className="w-11 min-h-[44px] rounded-xl flex items-center justify-center text-sm"
                   style={{ background:'rgba(239,68,68,0.12)', color:'#EF4444' }}>✕</motion.button>
               </div>
             </motion.div>
@@ -456,19 +476,53 @@ function FriendsView({ friends, requests, currentUser, onRefresh, navigate }) {
         </motion.div>
       )}
 
+      {/* Sent / pending requests */}
+      {sentRequests.length > 0 && (
+        <motion.div variants={cardVariants} className="flex flex-col gap-2.5">
+          <p className="text-xs font-black uppercase tracking-[0.14em]" style={{ color: '#8B5CF6' }}>
+            Sent Requests · {sentRequests.length}
+          </p>
+          {sentRequests.map((req) => (
+            <motion.div key={req.id}
+              initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
+              className="rounded-2xl p-3.5 flex items-center gap-3 min-h-[64px]"
+              style={{ background:'rgba(139,92,246,0.08)', border:'1px solid rgba(139,92,246,0.22)' }}>
+              <Avatar name={req.addressee.name} id={req.addressee.id} />
+              <div className="flex-1 min-w-0">
+                <p className="text-text font-semibold text-sm truncate">{req.addressee.name}</p>
+                <p className="text-muted text-xs truncate">{req.addressee.email}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg leading-none"
+                  style={{ background:'rgba(139,92,246,0.18)', color:'#A78BFA' }}>
+                  Pending
+                </span>
+                <motion.button whileTap={{ scale:0.92 }}
+                  onClick={() => cancelRequest(req)}
+                  disabled={cancelling === req.id}
+                  className="text-xs font-semibold px-3 py-2 min-h-[36px] rounded-lg transition-all"
+                  style={{ background:'rgba(239,68,68,0.1)', color:'#F87171' }}>
+                  {cancelling === req.id ? '…' : 'Cancel'}
+                </motion.button>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+      )}
+
       {/* Friends list */}
-      <motion.div variants={cardVariants} className="flex flex-col gap-2">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted">
-          Friends ({friends.length})
+      <motion.div variants={cardVariants} className="flex flex-col gap-2.5">
+        <p className="text-xs font-black uppercase tracking-[0.14em] text-muted/60">
+          Friends · {friends.length}
         </p>
         {friends.length === 0 ? (
           <div className="rounded-2xl p-8 flex flex-col items-center gap-3 text-center"
-            style={{ background:'rgba(13,18,37,0.6)', border:'1px dashed rgba(30,45,78,0.8)' }}>
+            style={{ background:'rgba(13,18,37,0.6)', border:'1px dashed rgba(59,108,255,0.2)' }}>
             <div className="text-4xl">👥</div>
             <div>
               <p className="text-text font-semibold text-sm">No friends yet</p>
               <p className="text-muted text-xs mt-1 leading-relaxed">
-                Add a friend by email or invite code above — once they accept, you can split expenses together
+                Add someone above — once they accept, split away 🤝
               </p>
             </div>
           </div>
@@ -476,21 +530,21 @@ function FriendsView({ friends, requests, currentUser, onRefresh, navigate }) {
           friends.map((f, i) => (
             <motion.div key={f.id}
               initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} transition={{ delay: i * 0.05 }}
-              className="rounded-2xl p-4 flex items-center gap-3"
-              style={{ background:'rgba(13,18,37,0.8)', border:'1px solid rgba(30,45,78,0.55)' }}>
+              className="rounded-2xl p-3.5 flex items-center gap-3 min-h-[64px]"
+              style={{ background:'rgba(13,18,37,0.85)', border:'1px solid rgba(30,45,78,0.6)' }}>
               <Avatar name={f.name} id={f.id} />
               <div className="flex-1 min-w-0">
                 <p className="text-text font-semibold text-sm truncate">{f.name}</p>
                 <p className="text-muted text-xs truncate">{f.email}</p>
               </div>
               <motion.button
-                whileTap={{ scale: 0.88 }}
+                whileTap={{ scale: 0.9 }}
                 onClick={() => navigate(`/chat/${f.id}`, { state: { friendName: f.name } })}
-                className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0 transition-all duration-150"
-                style={{ background: 'rgba(59,108,255,0.12)', color: '#3B6CFF' }}
+                className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: 'rgba(59,108,255,0.15)', color: '#3B6CFF' }}
                 title="Chat"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4.5 h-4.5 w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
@@ -602,8 +656,9 @@ function NewSplitView({ friends, currentUser, onCreated }) {
         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted mb-3">Split with</p>
         {friends.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-5 text-center">
-            <p className="text-muted text-sm">No friends yet</p>
-            <p className="text-muted/50 text-xs">Add friends first — then you can split expenses with them</p>
+            <div className="text-3xl">👥</div>
+            <p className="text-muted text-sm font-semibold">No friends yet</p>
+            <p className="text-muted/50 text-xs leading-relaxed">Head to the Friends tab and add someone — then split away</p>
           </div>
         ) : (
           <div className="flex flex-wrap gap-2">
@@ -726,12 +781,12 @@ function HistoryView({ splits, currentUser }) {
         <div>
           <p className="text-text font-bold text-lg">No splits yet</p>
           <p className="text-muted text-sm mt-1.5 leading-relaxed max-w-xs">
-            Add an expense with friends — every shared bill appears here
+            Add one and start settling up — every shared bill lands here 🤝
           </p>
         </div>
-        <div className="mt-2 px-4 py-3 rounded-2xl text-xs text-muted leading-relaxed max-w-xs"
-          style={{ background:'rgba(30,45,78,0.4)', border:'1px dashed rgba(59,108,255,0.2)' }}>
-          Tip: each person's share is automatically added to their daily spend limit
+        <div className="mt-2 px-4 py-3 rounded-2xl text-xs text-muted/70 leading-relaxed max-w-xs text-center"
+          style={{ background:'rgba(59,108,255,0.06)', border:'1px solid rgba(59,108,255,0.15)' }}>
+          💡 Each person's share is automatically tracked in their budget
         </div>
       </motion.div>
     );
@@ -795,25 +850,29 @@ function HistoryView({ splits, currentUser }) {
 export default function Split() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('balances');
-  const [balances,  setBalances]  = useState([]);
-  const [friends,   setFriends]   = useState([]);
-  const [requests,  setRequests]  = useState([]);
-  const [splits,    setSplits]    = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [settling,  setSettling]  = useState(null);
+  const [activeTab,    setActiveTab]    = useState('balances');
+  const [balances,     setBalances]     = useState([]);
+  const [friends,      setFriends]      = useState([]);
+  const [requests,     setRequests]     = useState([]);
+  const [sentRequests, setSentRequests] = useState([]);
+  const [splits,       setSplits]       = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [settling,     setSettling]     = useState(null);
+  const [toast,        setToast]        = useState(null); // { message, icon }
 
   const loadAll = useCallback(async () => {
     try {
-      const [bRes, fRes, rRes, sRes] = await Promise.all([
+      const [bRes, fRes, rRes, srRes, sRes] = await Promise.all([
         client.get('/splits/balances'),
         client.get('/friends'),
         client.get('/friends/requests'),
+        client.get('/friends/requests/sent'),
         client.get('/splits'),
       ]);
       setBalances(bRes.data);
       setFriends(fRes.data);
       setRequests(rRes.data);
+      setSentRequests(srRes.data);
       setSplits(sRes.data);
     } catch {
       // individual views show their own empty states
@@ -823,6 +882,30 @@ export default function Split() {
   }, []);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+
+  // Poll friend requests every 12 s when the Friends tab is open
+  useEffect(() => {
+    if (activeTab !== 'friends') return;
+    const id = setInterval(() => {
+      Promise.all([
+        client.get('/friends/requests'),
+        client.get('/friends/requests/sent'),
+        client.get('/friends'),
+      ]).then(([rRes, srRes, fRes]) => {
+        setRequests(rRes.data);
+        setSentRequests(srRes.data);
+        setFriends(fRes.data);
+      }).catch(() => {});
+    }, 12000);
+    return () => clearInterval(id);
+  }, [activeTab]);
+
+  // Refetch everything when the browser tab regains focus
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') loadAll(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [loadAll]);
 
   async function handleSettle(friendId) {
     setSettling(friendId);
@@ -837,14 +920,36 @@ export default function Split() {
 
   if (!user || loading) {
     return (
-      <div className="min-h-screen bg-bg flex items-center justify-center">
-        <Spinner size="lg" />
+      <div className="min-h-screen bg-bg pb-28">
+        <TopBar showLogout />
+        <div className="max-w-sm mx-auto px-4 pt-5 flex flex-col gap-5">
+          <div className="flex items-center justify-between">
+            <div className="h-8 w-14 rounded-xl bg-white/5 animate-pulse" />
+          </div>
+          <div className="flex gap-2">
+            {[80, 64, 88, 68].map((w, i) => (
+              <div key={i} style={{ width: w }} className="h-9 rounded-xl bg-white/5 animate-pulse" />
+            ))}
+          </div>
+          <div className="h-44 rounded-3xl bg-white/5 animate-pulse" />
+          <div className="h-20 rounded-3xl bg-white/5 animate-pulse" />
+          <div className="h-20 rounded-3xl bg-white/5 animate-pulse" />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-bg pb-28 page-enter">
+      {toast && (
+        <Toast
+          key={toast.message}
+          message={toast.message}
+          icon={toast.icon}
+          onDismiss={() => setToast(null)}
+        />
+      )}
+
       <TopBar showLogout />
 
       <div className="max-w-sm mx-auto px-4 pt-5 flex flex-col gap-5">
@@ -872,7 +977,15 @@ export default function Split() {
               <BalancesView balances={balances} onSettle={handleSettle} settling={settling} />
             )}
             {activeTab === 'friends' && (
-              <FriendsView friends={friends} requests={requests} currentUser={user} onRefresh={loadAll} navigate={navigate} />
+              <FriendsView
+                friends={friends}
+                requests={requests}
+                sentRequests={sentRequests}
+                currentUser={user}
+                onRefresh={loadAll}
+                navigate={navigate}
+                onToast={(message, icon) => setToast({ message, icon })}
+              />
             )}
             {activeTab === 'new' && (
               <NewSplitView friends={friends} currentUser={user}

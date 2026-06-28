@@ -26,25 +26,25 @@ const SPRING = { duration: 0.45, ease: [0.22, 1, 0.36, 1] };
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.055, delayChildren: 0.02 } } };
 const fadeUp = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0, transition: SPRING } };
 
-function MenuItem({ icon, grad, label, sub, onClick }) {
+function MenuItem({ icon, grad, label, sub, onClick, danger }) {
   return (
     <motion.button
       whileTap={{ scale: 0.975 }}
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-left"
+      className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-left min-h-[56px]"
       style={{ WebkitTapHighlightColor: 'transparent' }}
     >
       <span
-        className="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl text-base"
+        className="h-10 w-10 shrink-0 flex items-center justify-center rounded-xl text-[17px]"
         style={{ background: grad ?? 'rgba(59,108,255,0.12)' }}
       >
         {icon}
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-text leading-tight">{label}</p>
-        {sub && <p className="text-muted/45 text-xs mt-0.5 leading-tight">{sub}</p>}
+        <p className={`text-sm font-semibold leading-tight ${danger ? 'text-red-400' : 'text-text'}`}>{label}</p>
+        {sub && <p className="text-muted/50 text-xs mt-0.5 leading-tight">{sub}</p>}
       </div>
-      <svg className="w-4 h-4 shrink-0 text-muted/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-4 h-4 shrink-0 text-muted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
       </svg>
     </motion.button>
@@ -53,12 +53,12 @@ function MenuItem({ icon, grad, label, sub, onClick }) {
 
 function MenuGroup({ label, children }) {
   return (
-    <motion.div variants={fadeUp} className="flex flex-col gap-1">
+    <motion.div variants={fadeUp} className="flex flex-col gap-1.5">
       {label && (
-        <p className="text-[9px] font-black uppercase tracking-[0.22em] text-muted/30 px-1 mb-0.5">{label}</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted/45 px-1">{label}</p>
       )}
-      <div className="rounded-3xl px-1 py-1.5 flex flex-col"
-        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}
+      <div className="rounded-3xl px-1.5 py-1.5 flex flex-col"
+        style={{ background: 'rgba(13,18,37,0.85)', border: '1px solid rgba(255,255,255,0.07)' }}
       >
         {children}
       </div>
@@ -178,7 +178,7 @@ export default function Profile() {
   const ringGrad = `linear-gradient(135deg, ${ca}, ${cb})`;
 
   return (
-    <div className="min-h-screen bg-bg pb-36 page-enter" style={{ paddingTop: 'env(safe-area-inset-top,0px)' }}>
+    <div className="min-h-screen bg-bg page-enter" style={{ paddingTop: 'env(safe-area-inset-top,0px)', paddingBottom: 'calc(9rem + env(safe-area-inset-bottom,0px))' }}>
       {toast && <Toast message={toast.message} icon={toast.icon} onDismiss={() => setToast(null)} />}
       <AnimatePresence>{showDelete && <DeleteDialog onCancel={() => setShowDelete(false)} onConfirm={handleDelete} deleting={deleting} />}</AnimatePresence>
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
@@ -284,7 +284,7 @@ export default function Profile() {
               whileTap={onClick ? { scale: 0.96 } : undefined}
               onClick={onClick}
               className={`rounded-2xl p-4 flex flex-col gap-2.5 ${onClick ? 'cursor-pointer' : ''}`}
-              style={{ background: 'rgba(255,255,255,0.035)', border: `1px solid ${accent}15` }}
+              style={{ background: 'rgba(13,18,37,0.85)', border: `1px solid ${accent}28` }}
             >
               <span className="text-xl leading-none">{icon}</span>
               <div>
@@ -303,8 +303,8 @@ export default function Profile() {
           <motion.button
             whileTap={{ scale: 0.985 }}
             onClick={() => navigate('/score')}
-            className="w-full rounded-2xl px-4 py-3.5 flex items-center gap-3.5 text-left"
-            style={{ background: `linear-gradient(135deg,${scoreColor}12,${scoreColor}06)`, border: `1px solid ${scoreColor}20` }}
+            className="w-full rounded-2xl px-4 py-3.5 flex items-center gap-3.5 text-left min-h-[56px]"
+            style={{ background: `linear-gradient(135deg,${scoreColor}18,${scoreColor}0a)`, border: `1px solid ${scoreColor}28` }}
           >
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
@@ -328,35 +328,38 @@ export default function Profile() {
 
         {/* ── Menu ── */}
         <MenuGroup label="Account">
-          <MenuItem icon="✏️" grad="rgba(59,108,255,0.14)" label="Edit Profile"    sub="Name, email, budget"         onClick={() => navigate('/profile/edit')} />
-          <MenuItem icon="🎯" grad="rgba(16,185,129,0.14)" label="My Goals"         sub="Track savings targets"       onClick={() => navigate('/goals')} />
-          <MenuItem icon="🫙" grad="rgba(16,185,129,0.14)" label="Savings Jar"      sub="Round-ups & jar goal"        onClick={() => navigate('/jar')} />
-          <MenuItem icon="🔒" grad="rgba(139,92,246,0.14)" label="Change Password"                                    onClick={() => navigate('/profile/change-password')} />
+          <MenuItem icon="✏️" grad="rgba(59,108,255,0.16)"  label="Edit Profile"     sub="Name, email, budget"       onClick={() => navigate('/profile/edit')} />
+          <MenuItem icon="🔒" grad="rgba(139,92,246,0.16)"  label="Change Password"  sub="Update your password"      onClick={() => navigate('/profile/change-password')} />
+        </MenuGroup>
+
+        <MenuGroup label="Goals & Savings">
+          <MenuItem icon="🎯" grad="rgba(16,185,129,0.16)"  label="My Goals"          sub="Track savings targets"    onClick={() => navigate('/goals')} />
+          <MenuItem icon="🫙" grad="rgba(6,182,212,0.16)"   label="Savings Jar"       sub="Round-ups & jar goal"     onClick={() => navigate('/jar')} />
         </MenuGroup>
 
         <MenuGroup label="Preferences">
-          <MenuItem icon="🔔" grad="rgba(245,158,11,0.14)"  label="Notifications"  sub="Streak, budget & alerts"     onClick={() => navigate('/notifications')} />
-          <MenuItem icon="⚙️" grad="rgba(107,114,128,0.14)" label="Settings"       sub="Currency, date format"       onClick={() => navigate('/settings')} />
+          <MenuItem icon="🔔" grad="rgba(245,158,11,0.16)"  label="Notifications"    sub="Streak, budget & alerts"   onClick={() => navigate('/notifications')} />
+          <MenuItem icon="⚙️" grad="rgba(107,114,128,0.16)" label="Settings"         sub="Currency, date format"     onClick={() => navigate('/settings')} />
         </MenuGroup>
 
         <MenuGroup label="Support">
-          <MenuItem icon="❓" grad="rgba(59,108,255,0.12)"  label="Help & Support"  sub="FAQs and how-tos"           onClick={() => navigate('/help')} />
-          <MenuItem icon="ℹ️" grad="rgba(59,108,255,0.12)"  label="About PocketPal" sub="v1.0"                       onClick={() => navigate('/about')} />
+          <MenuItem icon="❓" grad="rgba(59,108,255,0.14)"  label="Help & Support"   sub="FAQs and how-tos"          onClick={() => navigate('/help')} />
+          <MenuItem icon="ℹ️" grad="rgba(59,108,255,0.14)"  label="About PocketPal"  sub="v1.0 · made with ❤️"      onClick={() => navigate('/about')} />
         </MenuGroup>
 
         {/* ── Sign out + delete ── */}
-        <motion.div variants={fadeUp} className="flex flex-col items-center gap-3 pb-4 pt-1">
+        <motion.div variants={fadeUp} className="flex flex-col items-center gap-3 pt-1">
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={logout}
-            className="w-full py-3.5 rounded-2xl text-sm font-bold text-red-400"
-            style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.18)' }}
+            className="w-full min-h-[52px] py-3.5 rounded-2xl text-sm font-bold text-red-400"
+            style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.20)' }}
           >
             Sign out
           </motion.button>
           <button
             onClick={() => setShowDelete(true)}
-            className="text-xs text-muted/30 hover:text-muted/50 transition-colors"
+            className="text-xs text-muted/30 hover:text-muted/50 transition-colors pb-2"
           >
             Delete account
           </button>

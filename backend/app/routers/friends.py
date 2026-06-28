@@ -125,3 +125,31 @@ def incoming_requests(
         Friendship.addressee_id == current_user.id,
         Friendship.status == "pending",
     ).all()
+
+
+@router.get("/requests/sent", response_model=List[FriendshipResponse])
+def sent_requests(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return db.query(Friendship).filter(
+        Friendship.requester_id == current_user.id,
+        Friendship.status == "pending",
+    ).all()
+
+
+@router.post("/cancel/{friendship_id}", status_code=204)
+def cancel_request(
+    friendship_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    f = db.query(Friendship).filter(Friendship.id == friendship_id).first()
+    if not f:
+        raise HTTPException(status_code=404, detail="Friend request not found")
+    if f.requester_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not your request to cancel")
+    if f.status != "pending":
+        raise HTTPException(status_code=400, detail=f"Request is already {f.status}")
+    db.delete(f)
+    db.commit()
