@@ -15,6 +15,7 @@ from .routers import friends as friends_router
 from .routers import groups as groups_router
 from .routers import pal as pal_router
 from .routers import pocketscore as pocketscore_router
+from .routers import profile as profile_router
 from .routers import splits as splits_router
 from .routers import streak as streak_router
 from .routers import wallet as wallet_router
@@ -107,6 +108,7 @@ def on_startup():
 
 
 app.include_router(auth_router.router)
+app.include_router(profile_router.router)
 app.include_router(wallet_router.router)
 app.include_router(categories_router.router)
 app.include_router(expenses_router.router)

@@ -308,3 +308,28 @@ class ResetPasswordRequest(BaseModel):
     email: EmailStr
     otp: str = Field(min_length=6, max_length=6)
     new_password: str = Field(min_length=8)
+
+
+# ── Profile management ────────────────────────────────────────────────────────
+
+class UpdateProfileRequest(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    email: Optional[EmailStr] = None
+    # Wallet fields — silently ignored when no wallet exists yet
+    monthly_balance: Optional[float] = Field(default=None, gt=0)
+    savings_goal: Optional[float] = Field(default=None, ge=0)
+    goal_name: Optional[str] = Field(default=None, max_length=60)
+    next_refill_date: Optional[date] = None
+    number_of_days: Optional[int] = Field(default=None, ge=1, le=366)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8)
+    confirm_password: str
+
+    @model_validator(mode="after")
+    def passwords_match(self):
+        if self.new_password != self.confirm_password:
+            raise ValueError("New passwords do not match")
+        return self

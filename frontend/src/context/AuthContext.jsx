@@ -169,6 +169,18 @@ export function AuthProvider({ children }) {
     navigate('/onboarding');
   };
 
+  // Call this after any server-side profile update to sync name/email into React state.
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await client.get('/auth/me');
+      const nextUser = res.data;
+      _writeStoredUser(nextUser, _getTokenStorage());
+      setUser(nextUser);
+    } catch {
+      // keep stale data — better than clearing on a transient error
+    }
+  }, []);
+
   const logout = useCallback(() => {
     _clearSession(setUser);
     setHasStoredSession(false);
@@ -176,7 +188,7 @@ export function AuthProvider({ children }) {
   }, [navigate]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, hasStoredSession, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, hasStoredSession, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

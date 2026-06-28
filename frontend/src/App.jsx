@@ -15,6 +15,9 @@ import Analysis from './pages/Analysis';
 import Score from './pages/Score';
 import Jar from './pages/Jar';
 import Split from './pages/Split';
+import Profile from './pages/Profile';
+import EditProfile from './pages/EditProfile';
+import ChangePassword from './pages/ChangePassword';
 
 function ProtectedRoute({ children }) {
   const { user, loading, hasStoredSession } = useAuth();
@@ -31,7 +34,7 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-const NO_NAV = ['/login', '/register', '/onboarding', '/add', '/forgot-password'];
+const NO_NAV = ['/login', '/register', '/onboarding', '/add', '/forgot-password', '/profile/edit', '/profile/change-password'];
 
 export default function App() {
   const location = useLocation();
@@ -112,6 +115,30 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Split />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile/edit"
+        element={
+          <ProtectedRoute>
+            <EditProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile/change-password"
+        element={
+          <ProtectedRoute>
+            <ChangePassword />
           </ProtectedRoute>
         }
       />
