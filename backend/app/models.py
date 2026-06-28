@@ -29,6 +29,7 @@ class User(Base):
     wallet = relationship("Wallet", back_populates="user", uselist=False, cascade="all, delete-orphan")
     categories = relationship("Category", back_populates="user", cascade="all, delete-orphan")
     expenses = relationship("Expense", back_populates="user", cascade="all, delete-orphan")
+    goals = relationship("Goal", back_populates="user", cascade="all, delete-orphan")
 
 
 class Wallet(Base):
@@ -84,6 +85,22 @@ class Expense(Base):
 
     user = relationship("User", back_populates="expenses")
     category = relationship("Category", back_populates="expenses")
+
+
+# ── Goals ────────────────────────────────────────────────────────────────────
+
+class Goal(Base):
+    __tablename__ = "goals"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    name = Column(String, nullable=False)
+    emoji = Column(String, nullable=True)
+    target_amount = Column(Float, nullable=False)
+    saved_amount = Column(Float, default=0.0, nullable=False)
+    created_at = Column(DateTime, default=datetime.now)
+
+    user = relationship("User", back_populates="goals")
 
 
 # ── Password Reset ───────────────────────────────────────────────────────────

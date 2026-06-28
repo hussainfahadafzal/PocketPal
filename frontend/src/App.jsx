@@ -18,6 +18,11 @@ import Split from './pages/Split';
 import Profile from './pages/Profile';
 import EditProfile from './pages/EditProfile';
 import ChangePassword from './pages/ChangePassword';
+import Goals from './pages/Goals';
+import Notifications from './pages/Notifications';
+import Settings from './pages/Settings';
+import Help from './pages/Help';
+import About from './pages/About';
 
 function ProtectedRoute({ children }) {
   const { user, loading, hasStoredSession } = useAuth();
@@ -34,7 +39,7 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-const NO_NAV = ['/login', '/register', '/onboarding', '/add', '/forgot-password', '/profile/edit', '/profile/change-password'];
+const NO_NAV = ['/login', '/register', '/onboarding', '/add', '/forgot-password', '/profile/edit', '/profile/change-password', '/goals', '/notifications', '/settings', '/help', '/about'];
 
 export default function App() {
   const location = useLocation();
@@ -139,6 +144,46 @@ export default function App() {
         element={
           <ProtectedRoute>
             <ChangePassword />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/goals"
+        element={
+          <ProtectedRoute>
+            <Goals />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <Notifications />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/help"
+        element={
+          <ProtectedRoute>
+            <Help />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/about"
+        element={
+          <ProtectedRoute>
+            <About />
           </ProtectedRoute>
         }
       />
